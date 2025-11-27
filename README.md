@@ -148,64 +148,10 @@ Frontend will start on `http://localhost:5173`
 - **Tap both sides** - Brake
 - **Otherwise** - Accelerate
 
-## 📁 Project Structure
 
-```
-racing-multiplayer/
-├── client/                 # React Frontend
-│   ├── src/
-│   │   ├── components/     # React components
-│   │   ├── services/       # API & Socket services
-│   │   ├── engine/         # Game engine (TODO)
-│   │   └── types/          # TypeScript types
-│   └── public/
-│       └── images/         # Game assets
-│
-├── server/                 # Node.js Backend
-│   ├── src/
-│   │   ├── controllers/    # Route controllers
-│   │   ├── models/         # MongoDB models
-│   │   ├── services/       # Business logic
-│   │   ├── socket/         # WebSocket handlers
-│   │   ├── middleware/     # Express middleware
-│   │   ├── routes/         # API routes
-│   │   └── config/         # Configuration
-│   └── package.json
-│
-└── shared/                 # Shared TypeScript types
-    └── types.ts
-```
 
-## 🔧 Development Status
 
-### ✅ Completed (Backend - 100%)
-- [x] JWT Authentication
-- [x] Session Management (single device)
-- [x] MongoDB Models (User, Session, Race)
-- [x] Socket.IO Server
-- [x] Room Management
-- [x] Real-time Position Sync
-- [x] Race Countdown
-- [x] Player Disconnect Handling
 
-### 🚧 In Progress (Frontend - 40%)
-- [x] API Service
-- [x] Socket Service
-- [x] Project Setup
-- [ ] Authentication UI (Login/Register)
-- [ ] Game Engine (TypeScript conversion)
-- [ ] Multiplayer Game Component
-- [ ] Lobby System
-- [ ] HUD Component
-
-### ⏳ Planned
-- [ ] Sound Effects
-- [ ] Leaderboards
-- [ ] Spectator Mode
-- [ ] Custom Track Editor
-- [ ] Mobile App (React Native)
-
-## 🐛 Troubleshooting
 
 ### MongoDB Connection Error
 ```bash

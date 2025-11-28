@@ -1,5 +1,5 @@
 import axios from 'axios';
-import type { User, AuthResponse, LoginRequest, RegisterRequest } from '../../../shared/types';
+import type { User, AuthResponse, RegisterRequest } from '../../../shared/types';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000/api';
 

@@ -115,7 +115,7 @@ class SocketService {
   }
 
   // Remove listeners
-  off(event: string): void {
+  off(event: keyof ServerToClientEvents): void {
     this.socket?.off(event);
   }
 

@@ -1,7 +1,7 @@
 // Road builder for procedural track generation
 
 import { COLORS, ROAD, SPRITES, SPRITE_GROUPS } from './constants';
-import type { Segment, SegmentSprite } from './types';
+import type { Segment } from './types';
 import { Util } from './utils';
 
 export class RoadBuilder {

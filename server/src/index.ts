@@ -15,16 +15,31 @@ import {
 const app = express();
 const httpServer = createServer(app);
 
+// CORS configuration - handle multiple origins
+const allowedOrigins = config.corsOrigin.split(',').map(o => o.trim());
+
+const corsOptions = {
+  origin: (origin: string | undefined, callback: (err: Error | null, allow?: boolean) => void) => {
+    // Allow requests with no origin (like mobile apps or curl requests)
+    if (!origin) return callback(null, true);
+    
+    // Check if origin is in allowed list or if wildcard is set
+    if (allowedOrigins.includes('*') || allowedOrigins.includes(origin)) {
+      callback(null, true);
+    } else {
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
+  credentials: true,
+};
+
 // Initialize Socket.IO
 const io = new Server<ClientToServerEvents, ServerToClientEvents>(httpServer, {
-  cors: {
-    origin: config.corsOrigin,
-    credentials: true,
-  },
+  cors: corsOptions,
 });
 
 // Middleware
-app.use(cors({ origin: config.corsOrigin, credentials: true }));
+app.use(cors(corsOptions));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
@@ -61,7 +76,7 @@ const startServer = async () => {
     httpServer.listen(config.port, () => {
       console.log('');
       console.log('🚗 ═══════════════════════════════════════════════════════');
-      console.log('🏁  Pixel Racing Multiplayer Server');
+      console.log('🏁   Racing Multiplayer Server');
       console.log('🚗 ═══════════════════════════════════════════════════════');
       console.log('');
       console.log(`   🌐 Server running on: http://localhost:${config.port}`);

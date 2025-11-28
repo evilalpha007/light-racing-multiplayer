@@ -16,7 +16,10 @@ const app = express();
 const httpServer = createServer(app);
 
 // CORS configuration - handle multiple origins
-const allowedOrigins = config.corsOrigin.split(',').map(o => o.trim());
+const allowedOrigins = (config.corsOrigin || 'http://localhost:5173')
+  .split(',')
+  .map(o => o.trim())
+  .filter(o => o.length > 0); 
 
 const corsOptions = {
   origin: (origin: string | undefined, callback: (err: Error | null, allow?: boolean) => void) => {
@@ -27,6 +30,7 @@ const corsOptions = {
     if (allowedOrigins.includes('*') || allowedOrigins.includes(origin)) {
       callback(null, true);
     } else {
+      console.warn(`⚠️  CORS blocked origin: ${origin}`);
       callback(new Error('Not allowed by CORS'));
     }
   },

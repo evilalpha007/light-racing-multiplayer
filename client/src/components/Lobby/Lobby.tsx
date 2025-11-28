@@ -1,9 +1,15 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef, Suspense } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { socketService } from '../../services/socket';
 import type { Room } from '../../../../shared/types';
 import './Lobby.css';
+import { toast, ToastContainer } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
+
+// 3D imports (UI-only, logic untouched)
+import { Canvas, useFrame } from '@react-three/fiber';
+import { OrbitControls, useGLTF } from '@react-three/drei';
 
 export const Lobby: React.FC = () => {
   const [rooms, setRooms] = useState<Room[]>([]);
@@ -48,15 +54,49 @@ export const Lobby: React.FC = () => {
   const handleCreateRoom = () => {
     if (!roomName.trim()) return;
 
+    // Check if user is already hosting a room
+    const userHostedRoom = rooms.find(room => 
+      room.players.some(player => player.userId === user?._id && player.isHost)
+    );
+
+    if (userHostedRoom) {
+      toast.error('You are already hosting a room! Please close it first.', {
+        position: 'top-right',
+        autoClose: 3000,
+        hideProgressBar: false,
+        closeOnClick: true,
+        pauseOnHover: true,
+        draggable: true
+      });
+      return;
+    }
+
     setLoading(true);
     socketService.createRoom(roomName, (room) => {
       setLoading(false);
       if (room) {
+        toast.success('Room created successfully!', {
+          position: 'top-right',
+          autoClose: 2000
+        });
         navigate(`/room/${room.id}`);
       } else {
-        alert('Failed to create room');
+        toast.error('Failed to create room');
       }
     });
+  };
+
+  const handleCloseRoom = (roomId: string) => {
+    // @ts-ignore - close-room is a server-side event
+    socketService.socket?.emit('close-room', roomId);
+    toast.info('Room closed', {
+      position: 'top-right',
+      autoClose: 2000
+    });
+    // Refresh room list after a short delay
+    setTimeout(() => {
+      fetchRooms();
+    }, 500);
   };
 
   const handleJoinRoom = (roomId: string) => {
@@ -75,78 +115,291 @@ export const Lobby: React.FC = () => {
   };
 
   return (
-    <div className="lobby-container">
-      <div className="lobby-header">
-        <h1>🏁 Pixel Racing Lobby</h1>
-        <div className="user-info">
-          <span>👤 {user?.username}</span>
-          <button onClick={handleLogout} className="btn-secondary">
-            Logout
-          </button>
+    <div className="lobby-container" style={{ 
+      background: `linear-gradient(rgba(26, 31, 46, 0.85), rgba(44, 62, 80, 0.85)), url('/racing-bg.png')`,
+      backgroundSize: 'cover',
+      backgroundPosition: 'center',
+      backgroundRepeat: 'no-repeat',
+      minHeight: '100vh',
+      position: 'relative',
+      overflow: 'hidden'
+    }}>
+      <ToastContainer theme="dark" />
+      {/* Top Bar */}
+      <div style={{ 
+        display: 'flex', 
+        justifyContent: 'space-between', 
+        alignItems: 'center', 
+        padding: '20px 40px',
+        position: 'relative',
+        zIndex: 10
+      }}>
+        <h1 style={{ 
+          color: '#fff', 
+          fontSize: '2.5rem',
+          margin: 0,
+          textTransform: 'uppercase',
+          letterSpacing: 2
+        }}>LIGHT RACING</h1>
+        
+        <div style={{ display: 'flex', gap: 20, alignItems: 'center' }}>
+          <div style={{ 
+            background: 'linear-gradient(135deg, #f39c12 0%, #e67e22 100%)',
+            padding: '8px 16px',
+            borderRadius: 20,
+            display: 'flex',
+            alignItems: 'center',
+            gap: 8,
+            fontWeight: 700
+          }}>
+            <span style={{ fontSize: '1.2rem' }}>💰</span>
+            <span>5400</span>
+          </div>
+          <div style={{ 
+            background: 'rgba(255,255,255,0.1)',
+            padding: '8px 16px',
+            borderRadius: 20,
+            display: 'flex',
+            alignItems: 'center',
+            gap: 8
+          }}>
+            <span>👤 {user?.username}</span>
+          </div>
+          <button onClick={handleLogout} style={{
+            background: 'rgba(255,255,255,0.1)',
+            border: 'none',
+            padding: '10px 16px',
+            borderRadius: 20,
+            color: '#fff',
+            fontSize: '1.2rem'
+          }}>⚙️</button>
         </div>
       </div>
 
-      <div className="lobby-content">
-        <div className="lobby-actions">
-          <button
-            onClick={() => setShowCreateModal(true)}
-            className="btn-primary btn-large"
-          >
-            ➕ Create Room
-          </button>
-          <button onClick={fetchRooms} className="btn-secondary">
-            🔄 Refresh
-          </button>
-        </div>
+      {/* Left Sidebar */}
+      <div style={{
+        position: 'absolute',
+        left: 20,
+        top: '50%',
+        transform: 'translateY(-50%)',
+        display: 'flex',
+        flexDirection: 'column',
+        gap: 12,
+        zIndex: 10
+      }}>
+        <button onClick={() => setShowCreateModal(true)} style={{
+          background: 'linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)',
+          border: 'none',
+          padding: '14px 28px',
+          borderRadius: 30,
+          color: '#fff',
+          fontWeight: 700,
+          fontSize: '1rem',
+          display: 'flex',
+          alignItems: 'center',
+          gap: 8,
+          boxShadow: '0 4px 15px rgba(59, 130, 246, 0.4)'
+        }}>
+          ➕ Create Room
+        </button>
+        
+        <button onClick={fetchRooms} style={{
+          background: 'rgba(255,255,255,0.1)',
+          border: '2px solid rgba(255,255,255,0.2)',
+          padding: '14px 28px',
+          borderRadius: 30,
+          color: '#fff',
+          fontWeight: 600,
+          fontSize: '1rem',
+          display: 'flex',
+          alignItems: 'center',
+          gap: 8
+        }}>
+          🔄 Refresh Rooms
+        </button>
+      </div>
 
-        <div className="rooms-list">
-          <h2>Available Rooms ({rooms.length})</h2>
-          
-          {rooms.length === 0 ? (
-            <div className="empty-state">
-              <p>No rooms available</p>
-              <p>Create one to start racing!</p>
-            </div>
-          ) : (
-            <div className="rooms-grid">
-              {rooms.map((room) => (
-                <div key={room.id} className="room-card">
-                  <div className="room-header">
-                    <h3>{room.name}</h3>
-                    <span className={`status-badge status-${room.status}`}>
-                      {room.status}
-                    </span>
-                  </div>
-                  
-                  <div className="room-info">
-                    <p>
-                      👥 {room.players.length}/{room.maxPlayers} Players
-                    </p>
-                    <p>🏎️ Host: {room.players.find(p => p.isHost)?.username}</p>
-                  </div>
-
-                  <button
-                    onClick={() => handleJoinRoom(room.id)}
-                    className="btn-primary"
-                    disabled={room.status !== 'waiting' || room.players.length >= room.maxPlayers}
-                  >
-                    {room.status !== 'waiting' ? 'In Progress' : 
-                     room.players.length >= room.maxPlayers ? 'Full' : 'Join'}
-                  </button>
+      {/* Right Sidebar - Room List */}
+      <div style={{
+        position: 'absolute',
+        right: 20,
+        top: '50%',
+        transform: 'translateY(-50%)',
+        width: 320,
+        maxHeight: '70vh',
+        overflowY: 'auto',
+        zIndex: 10,
+        display: 'flex',
+        flexDirection: 'column',
+        gap: 12
+      }}>
+        <h3 style={{ color: '#fff', margin: 0, marginBottom: 8, fontSize: '1.2rem' }}>Available Rooms ({rooms.length})</h3>
+        
+        {rooms.length === 0 ? (
+          <div style={{
+            background: 'rgba(255,255,255,0.05)',
+            backdropFilter: 'blur(10px)',
+            padding: '20px',
+            borderRadius: 15,
+            border: '1px solid rgba(255,255,255,0.1)',
+            textAlign: 'center',
+            color: '#9fb0c6'
+          }}>
+            <p style={{ margin: 0 }}>No rooms available</p>
+            <p style={{ margin: '8px 0 0 0', fontSize: '0.9rem' }}>Create one to start racing!</p>
+          </div>
+        ) : (
+          rooms.map((room) => {
+            const isUserHost = room.players.some(p => p.userId === user?._id && p.isHost);
+            return (
+              <div key={room.id} style={{
+                background: 'rgba(255,255,255,0.05)',
+                backdropFilter: 'blur(10px)',
+                padding: '16px',
+                borderRadius: 15,
+                border: '1px solid rgba(255,255,255,0.1)',
+                transition: 'all 0.3s ease'
+              }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+                  <h4 style={{ margin: 0, color: '#fff', fontSize: '1rem' }}>{room.name}</h4>
+                  <span style={{
+                    padding: '4px 10px',
+                    borderRadius: 12,
+                    fontSize: '0.75rem',
+                    fontWeight: 700,
+                    background: room.status === 'racing' ? '#f6b23b' : '#0ea5e9',
+                    color: room.status === 'racing' ? '#2a1f00' : '#042a33'
+                  }}>
+                    {room.status}
+                  </span>
                 </div>
-              ))}
-            </div>
-          )}
-        </div>
+                
+                <div style={{ color: '#bcd3e7', fontSize: '0.85rem', marginBottom: 10 }}>
+                  <p style={{ margin: '4px 0' }}>👥 {room.players.length}/{room.maxPlayers} Players</p>
+                  <p style={{ margin: '4px 0' }}>🏎️ Host: {room.players.find(p => p.isHost)?.username ?? '—'}</p>
+                </div>
+
+                <div style={{ display: 'flex', gap: 8 }}>
+                  {isUserHost ? (
+                    <button
+                      onClick={() => handleCloseRoom(room.id)}
+                      style={{
+                        background: 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)',
+                        padding: '10px',
+                        borderRadius: 10,
+                        border: 'none',
+                        width: '100%',
+                        fontWeight: 700,
+                        color: '#fff',
+                        cursor: 'pointer',
+                        boxShadow: '0 4px 15px rgba(239, 68, 68, 0.4)'
+                      }}
+                    >
+                      Close Room
+                    </button>
+                  ) : (
+                    <button
+                      onClick={() => handleJoinRoom(room.id)}
+                      disabled={room.status !== 'waiting' || room.players.length >= room.maxPlayers}
+                      style={{
+                        background: room.status !== 'waiting' || room.players.length >= room.maxPlayers 
+                          ? 'rgba(255,255,255,0.1)' 
+                          : 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+                        padding: '10px',
+                        borderRadius: 10,
+                        border: 'none',
+                        width: '100%',
+                        fontWeight: 700,
+                        color: '#fff',
+                        cursor: room.status !== 'waiting' || room.players.length >= room.maxPlayers ? 'not-allowed' : 'pointer',
+                        opacity: room.status !== 'waiting' || room.players.length >= room.maxPlayers ? 0.5 : 1
+                      }}
+                    >
+                      {room.status !== 'waiting' ? 'In Progress' : 
+                       room.players.length >= room.maxPlayers ? 'Full' : 'Join Room'}
+                    </button>
+                  )}
+                </div>
+              </div>
+            );
+          })
+        )}
       </div>
+
+      {/* Center: 3D Car with Transparent Background */}
+      <div style={{ 
+        position: 'absolute',
+        top: '50%',
+        left: '50%',
+        transform: 'translate(-50%, -50%)',
+        width: '60%',
+        height: '70%',
+        zIndex: 1,
+        pointerEvents: 'auto'
+      }}>
+        <Canvas 
+          camera={{ position: [0, 0.9, 3], fov: 50 }}
+          gl={{ alpha: true, antialias: true, preserveDrawingBuffer: true }}
+          style={{ background: 'transparent', width: '100%', height: '100%' }}
+        >
+          <ambientLight intensity={0.8} />
+          <directionalLight intensity={1.2} position={[5, 10, 5]} />
+          <directionalLight intensity={0.5} position={[-5, 5, -5]} />
+          <Suspense fallback={null}>
+            <RotatingCar modelPath="/models/car.glb" />
+          </Suspense>
+          <OrbitControls enablePan={false} enableZoom={false} />
+        </Canvas>
+      </div>
+
+
+
 
       {showCreateModal && (
-        <div className="modal-overlay" onClick={() => setShowCreateModal(false)}>
-          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
-            <h2>Create New Room</h2>
+        <div 
+          onClick={() => setShowCreateModal(false)}
+          style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            background: 'rgba(0,0,0,0.6)',
+            backdropFilter: 'blur(5px)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 1000
+          }}
+        >
+          <div 
+            onClick={(e) => e.stopPropagation()}
+            style={{
+              background: 'rgba(255,255,255,0.08)',
+              backdropFilter: 'blur(20px)',
+              border: '1px solid rgba(255,255,255,0.15)',
+              borderRadius: 24,
+              padding: '40px',
+              width: '90%',
+              maxWidth: 450,
+              boxShadow: '0 8px 32px rgba(0,0,0,0.3)'
+            }}
+          >
+            <h2 style={{ 
+              margin: '0 0 24px 0', 
+              color: '#fff',
+              fontSize: '1.8rem',
+              fontWeight: 700
+            }}>Create New Room</h2>
             
-            <div className="form-group">
-              <label>Room Name</label>
+            <div style={{ marginBottom: 24 }}>
+              <label style={{ 
+                display: 'block',
+                marginBottom: 8,
+                color: '#bcd3e7',
+                fontSize: '0.95rem',
+                fontWeight: 600
+              }}>Room Name</label>
               <input
                 type="text"
                 value={roomName}
@@ -154,24 +407,61 @@ export const Lobby: React.FC = () => {
                 placeholder="Enter room name"
                 maxLength={30}
                 autoFocus
-                className='text-black'
+                style={{
+                  width: '100%',
+                  padding: '14px 18px',
+                  borderRadius: 12,
+                  border: '1px solid rgba(255,255,255,0.2)',
+                  background: 'rgba(255,255,255,0.05)',
+                  color: '#fff',
+                  fontSize: '1rem',
+                  outline: 'none',
+                  transition: 'all 0.3s ease'
+                }}
+                onFocus={(e) => e.target.style.borderColor = 'rgba(59, 130, 246, 0.5)'}
+                onBlur={(e) => e.target.style.borderColor = 'rgba(255,255,255,0.2)'}
               />
             </div>
 
-            <div className="modal-actions">
+            <div style={{ display: 'flex', gap: 12, justifyContent: 'flex-end' }}>
               <button
                 onClick={() => setShowCreateModal(false)}
-                className="btn-secondary"
                 disabled={loading}
+                style={{
+                  background: 'rgba(255,255,255,0.1)',
+                  border: '1px solid rgba(255,255,255,0.2)',
+                  padding: '12px 28px',
+                  borderRadius: 12,
+                  color: '#fff',
+                  fontWeight: 600,
+                  fontSize: '1rem',
+                  cursor: loading ? 'not-allowed' : 'pointer',
+                  opacity: loading ? 0.5 : 1,
+                  transition: 'all 0.3s ease'
+                }}
               >
                 Cancel
               </button>
               <button
                 onClick={handleCreateRoom}
-                className="btn-primary"
                 disabled={!roomName.trim() || loading}
+                style={{
+                  background: !roomName.trim() || loading 
+                    ? 'rgba(255,255,255,0.1)' 
+                    : 'linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)',
+                  border: 'none',
+                  padding: '12px 32px',
+                  borderRadius: 12,
+                  color: '#fff',
+                  fontWeight: 700,
+                  fontSize: '1rem',
+                  cursor: !roomName.trim() || loading ? 'not-allowed' : 'pointer',
+                  opacity: !roomName.trim() || loading ? 0.5 : 1,
+                  boxShadow: !roomName.trim() || loading ? 'none' : '0 4px 15px rgba(59, 130, 246, 0.4)',
+                  transition: 'all 0.3s ease'
+                }}
               >
-                {loading ? 'Creating...' : 'Create'}
+                {loading ? 'Creating...' : 'Create Room'}
               </button>
             </div>
           </div>
@@ -180,3 +470,44 @@ export const Lobby: React.FC = () => {
     </div>
   );
 };
+
+/* ---------------------------
+   Small 3D helper inside same file (UI-only)
+   - Rotates slowly (auto 360) but still lets user drag via OrbitControls
+   - Expects model at /models/car.glb; fallback box is shown if model missing
+   --------------------------- */
+function RotatingCar({ modelPath = '/models/car.glb' }: { modelPath?: string }) {
+  const group = useRef<any>();
+  useFrame((state, delta) => {
+    if (group.current) group.current.rotation.y += delta * 0.6; // adjust speed
+  });
+
+  // useGLTF will throw if model not found; Suspense fallback shows "Loading car..."
+  // cast to any to keep TS happy if you don't have types for GLTF.
+  let gltf: any = null;
+  try {
+    gltf = useGLTF(modelPath) as any;
+  } catch (e) {
+    // If hook throws, React will handle it via Suspense boundary.
+    // This catch block won't actually catch the hook error — it's here for clarity.
+  }
+
+  // If model loads, render it; otherwise render a placeholder box
+  if (gltf && gltf.scene) {
+    return (
+      <group ref={group} position={[0, -0.6, 0]}>
+        <primitive object={gltf.scene} scale={[0.6, 0.6, 0.6]} />
+      </group>
+    );
+  }
+
+  // Fallback placeholder
+  return (
+    <group ref={group}>
+      <mesh rotation={[0, 0, 0]} position={[0, 0, 0]}>
+        <boxGeometry args={[1.6, 0.6, 3]} />
+        <meshStandardMaterial metalness={0.3} roughness={0.4} />
+      </mesh>
+    </group>
+  );
+}

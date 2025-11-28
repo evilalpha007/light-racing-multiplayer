@@ -74,6 +74,7 @@ export class SocketHandler {
       this.handleCreateRoom(socket);
       this.handleJoinRoom(socket);
       this.handleLeaveRoom(socket);
+      this.handleCloseRoom(socket);
       this.handleToggleReady(socket);
       this.handleStartRace(socket);
       this.handleUpdatePosition(socket);
@@ -147,6 +148,49 @@ export class SocketHandler {
   private handleLeaveRoom(socket: Socket<ClientToServerEvents, ServerToClientEvents, {}, SocketData>): void {
     socket.on('leave-room', () => {
       this.leaveCurrentRoom(socket);
+    });
+  }
+
+  /**
+   * Handle close room (host only)
+   */
+  private handleCloseRoom(socket: Socket<ClientToServerEvents, ServerToClientEvents, {}, SocketData>): void {
+    socket.on('close-room', (roomId: string) => {
+      try {
+        const room = this.roomManager.getRoom(roomId);
+        
+        // Verify the user is the host
+        if (!room || room.hostId !== socket.data.userId) {
+          socket.emit('error', 'Only the host can close the room');
+          return;
+        }
+
+        // Get all players in the room before closing
+        const playerIds = room.players.map(p => p.userId);
+
+        // Close the room (this will remove it from roomManager)
+        const result = this.roomManager.leaveRoom(socket.data.userId);
+        
+        if (result) {
+          // Notify all players that the room was closed
+          this.io.to(roomId).emit('error', 'Room has been closed by the host');
+          
+          // Make all players leave the socket room
+          playerIds.forEach(playerId => {
+            const sockets = this.io.sockets.sockets;
+            sockets.forEach(s => {
+              if (s.data.userId === playerId) {
+                s.leave(roomId);
+              }
+            });
+          });
+
+          console.log(`🚪 Room closed by host: ${socket.data.username}`);
+        }
+      } catch (error) {
+        console.error('Close room error:', error);
+        socket.emit('error', 'Failed to close room');
+      }
     });
   }
 

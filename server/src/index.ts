@@ -9,7 +9,7 @@ import { SocketHandler } from './socket/socketHandler';
 import {
   ServerToClientEvents,
   ClientToServerEvents,
-} from '../../shared/types';
+} from './shared/types';
 
 // Initialize Express app
 const app = express();

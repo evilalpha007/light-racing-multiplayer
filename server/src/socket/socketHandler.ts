@@ -6,7 +6,7 @@ import {
   ServerToClientEvents,
   ClientToServerEvents,
   PlayerPosition,
-} from '../../../shared/types';
+} from '../shared/types';
 
 interface SocketData {
   userId: string;

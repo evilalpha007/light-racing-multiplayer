@@ -1,4 +1,5 @@
-import { Room, RoomPlayer, PlayerPosition, RaceResult } from '../../../shared/types';
+import { Room, RoomPlayer, PlayerPosition, RaceResult } from '../shared/types';
+// import { Room, RoomPlayer, PlayerPosition, RaceResult } from '@shared/types';
 import { v4 as uuidv4 } from 'uuid';
 
 export class RoomManager {

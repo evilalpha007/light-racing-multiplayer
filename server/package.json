@@ -5,7 +5,8 @@
   "main": "dist/index.js",
   "scripts": {
     "dev": "tsx watch src/index.ts",
-    "build": "tsc",
+    "build": "npm run copy-shared && tsc",
+    "copy-shared": "cp -r ../shared ./src/shared || xcopy /E /I /Y ..\\shared .\\src\\shared",
     "start": "node dist/index.js"
   },
   "keywords": [

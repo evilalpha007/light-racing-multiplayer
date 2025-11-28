@@ -1,9 +1,11 @@
 import { Request, Response } from 'express';
 import bcrypt from 'bcryptjs';
+import crypto from 'crypto';
 import { User } from '../models/User';
 import { JWTService } from '../services/jwtService';
 import { SessionService } from '../services/sessionService';
 import { DeviceService } from '../services/deviceService';
+import { emailService } from '../services/emailService';
 
 export class AuthController {
   /**
@@ -183,6 +185,122 @@ export class AuthController {
     } catch (error: any) {
       console.error('Get user error:', error);
       res.status(500).json({ error: 'Failed to get user' });
+    }
+  }
+
+  /**
+   * Request password reset
+   */
+  static async forgotPassword(req: Request, res: Response): Promise<void> {
+    try {
+      const { email } = req.body;
+
+      // Validate input
+      if (!email) {
+        res.status(400).json({ error: 'Email is required' });
+        return;
+      }
+
+      // Find user
+      const user = await User.findOne({ email: email.toLowerCase() });
+      if (!user) {
+        // Don't reveal if user exists or not for security
+        res.status(200).json({
+          message: 'If an account exists with this email, a password reset link has been sent.',
+        });
+        return;
+      }
+
+      // Generate reset token
+      const resetToken = crypto.randomBytes(32).toString('hex');
+      const hashedToken = crypto
+        .createHash('sha256')
+        .update(resetToken)
+        .digest('hex');
+
+      // Save hashed token and expiration to user
+      user.resetPasswordToken = hashedToken;
+      user.resetPasswordExpires = new Date(Date.now() + 60 * 60 * 1000); // 1 hour
+      await user.save();
+
+      // Get frontend URL from environment or use default
+      const frontendUrl =
+        process.env.FRONTEND_URL || 'http://localhost:5173';
+
+      // Send email
+      await emailService.sendPasswordResetEmail(
+        user.email,
+        resetToken,
+        frontendUrl
+      );
+
+      console.log(`✅ Password reset requested for: ${user.email}`);
+
+      res.status(200).json({
+        message: 'If an account exists with this email, a password reset link has been sent.',
+      });
+    } catch (error: any) {
+      console.error('Forgot password error:', error);
+      res.status(500).json({ error: 'Failed to process password reset request' });
+    }
+  }
+
+  /**
+   * Reset password with token
+   */
+  static async resetPassword(req: Request, res: Response): Promise<void> {
+    try {
+      const { token } = req.params;
+      const { password } = req.body;
+
+      // Validate input
+      if (!password) {
+        res.status(400).json({ error: 'Password is required' });
+        return;
+      }
+
+      if (password.length < 6) {
+        res.status(400).json({ error: 'Password must be at least 6 characters' });
+        return;
+      }
+
+      // Hash the token from URL
+      const hashedToken = crypto
+        .createHash('sha256')
+        .update(token)
+        .digest('hex');
+
+      // Find user with valid token
+      const user = await User.findOne({
+        resetPasswordToken: hashedToken,
+        resetPasswordExpires: { $gt: new Date() },
+      });
+
+      if (!user) {
+        res.status(400).json({ error: 'Invalid or expired reset token' });
+        return;
+      }
+
+      // Hash new password
+      const hashedPassword = await bcrypt.hash(password, 10);
+
+      // Update password and clear reset token
+      user.password = hashedPassword;
+      user.resetPasswordToken = undefined;
+      user.resetPasswordExpires = undefined;
+      await user.save();
+
+      // Terminate all existing sessions for security
+      await SessionService.terminateAllSessions(user._id.toString());
+
+      console.log(`✅ Password reset successful for: ${user.email}`);
+
+      res.status(200).json({
+        message: 'Password reset successful. You can now login with your new password.',
+      });
+    } catch (error: any) {
+      console.error('Reset password error:', error);
+      res.status(500).json({ error: 'Failed to reset password' });
     }
   }
 }

@@ -84,4 +84,20 @@ export class SessionService {
   ): Promise<ISession | null> {
     return await Session.findOne({ socketId, isActive: true });
   }
+
+  /**
+   * Terminate all sessions for a user (used for password reset)
+   */
+  static async terminateAllSessions(userId: string): Promise<number> {
+    const result = await Session.updateMany(
+      {
+        userId: new mongoose.Types.ObjectId(userId),
+        isActive: true,
+      },
+      {
+        $set: { isActive: false },
+      }
+    );
+    return result.modifiedCount;
+  }
 }

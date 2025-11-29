@@ -84,6 +84,7 @@ export interface ClientToServerEvents {
   'create-room': (roomName: string, callback: (room: Room | null) => void) => void;
   'join-room': (roomId: string, callback: (success: boolean) => void) => void;
   'leave-room': () => void;
+  'close-room': (roomId: string) => void;
   'toggle-ready': () => void;
   'start-race': () => void;
   'update-position': (position: Omit<PlayerPosition, 'playerId' | 'username'>) => void;

@@ -13,11 +13,11 @@ export const connectDatabase = async (): Promise<void> => {
 
 // Handle connection events
 mongoose.connection.on('disconnected', () => {
-  console.log('⚠️  MongoDB disconnected');
+  console.log('  MongoDB disconnected');
 });
 
 mongoose.connection.on('error', (err) => {
-  console.error('❌ MongoDB error:', err);
+  console.error(' MongoDB error:', err);
 });
 
 export default connectDatabase;

@@ -35,9 +35,9 @@ class EmailService {
         },
       });
 
-      console.log('✅ Email service initialized');
+      console.log(' Email service initialized');
     } catch (error) {
-      console.error('❌ Failed to initialize email service:', error);
+      console.error(' Failed to initialize email service:', error);
     }
   }
 
@@ -45,9 +45,9 @@ class EmailService {
     try {
       // If transporter is not configured, log to console
       if (!this.transporter) {
-        console.log('\n📧 ═══════════════════════════════════════');
-        console.log('📧 EMAIL (Development Mode)');
-        console.log('📧 ═══════════════════════════════════════');
+        console.log('\n ═══════════════════════════════════════');
+        console.log(' EMAIL (Development Mode)');
+        console.log(' ═══════════════════════════════════════');
         console.log(`To: ${options.to}`);
         console.log(`Subject: ${options.subject}`);
         console.log('─────────────────────────────────────────');
@@ -71,10 +71,10 @@ class EmailService {
         html: options.html,
       });
 
-      console.log(`✅ Email sent to ${options.to}`);
+      console.log(` Email sent to ${options.to}`);
       return true;
     } catch (error) {
-      console.error('❌ Failed to send email:', error);
+      console.error(' Failed to send email:', error);
       return false;
     }
   }

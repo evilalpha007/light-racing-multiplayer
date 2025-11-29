@@ -79,20 +79,20 @@ const startServer = async () => {
     // Start HTTP server
     httpServer.listen(config.port, () => {
       console.log('');
-      console.log('🚗 ═══════════════════════════════════════════════════════');
-      console.log('🏁   Racing Multiplayer Server');
-      console.log('🚗 ═══════════════════════════════════════════════════════');
+      console.log(' ═══════════════════════════════════════════════════════');
+      console.log('   Racing Multiplayer Server');
+      console.log(' ═══════════════════════════════════════════════════════');
       console.log('');
-      console.log(`   🌐 Server running on: http://localhost:${config.port}`);
-      // console.log(`   🗄️  Database: ${config.mongodbUri}`);
-      console.log(`   🔌 WebSocket ready for connections`);
-      // console.log(`   🌍 Environment: ${config.nodeEnv}`);
+      console.log(`    Server running on: http://localhost:${config.port}`);
+      // console.log(`     Database: ${config.mongodbUri}`);
+      console.log(`    WebSocket ready for connections`);
+      // console.log(`    Environment: ${config.nodeEnv}`);
       console.log('');
-      console.log('🚗 ═══════════════════════════════════════════════════════');
+      console.log(' ═══════════════════════════════════════════════════════');
       console.log('');
     });
   } catch (error) {
-    console.error('❌ Failed to start server:', error);
+    console.error(' Failed to start server:', error);
     process.exit(1);
   }
 };

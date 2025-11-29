@@ -16,23 +16,23 @@ async function getResetToken() {
 
     console.log('Connecting to MongoDB...');
     await mongoose.connect(mongoUri);
-    console.log('✅ Connected to MongoDB\n');
+    console.log(' Connected to MongoDB\n');
 
     const users = await User.find({});
     
     if (users.length === 0) {
-      console.log('❌ No users found');
+      console.log(' No users found');
     } else {
       console.log(`Found ${users.length} users:`);
       users.forEach(u => {
-        console.log(`- ${u.email} (Token: ${u.resetPasswordToken ? 'YES' : 'NO'})`);
+        console.log(`- ${u.email} (OTP: ${u.resetPasswordOTP ? 'YES' : 'NO'})`);
       });
     }
 
     await mongoose.disconnect();
-    console.log('✅ Disconnected from MongoDB');
+    console.log(' Disconnected from MongoDB');
   } catch (error) {
-    console.error('❌ Error:', error);
+    console.error(' Error:', error);
     process.exit(1);
   }
 }

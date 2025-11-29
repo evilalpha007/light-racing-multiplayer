@@ -10,6 +10,7 @@ import "react-toastify/dist/ReactToastify.css";
 // 3D imports (UI-only, logic untouched)
 import { Canvas, useFrame } from "@react-three/fiber";
 import { OrbitControls, useGLTF } from "@react-three/drei";
+import { LogOut } from "lucide-react";
 
 export const Lobby: React.FC = () => {
   const [rooms, setRooms] = useState<Room[]>([]);
@@ -230,7 +231,7 @@ export const Lobby: React.FC = () => {
               fontSize: "1.2rem",
             }}
           >
-            ⚙️
+            <LogOut className="w-5 h-5" />
           </button>
         </div>
       </div>
@@ -494,7 +495,7 @@ export const Lobby: React.FC = () => {
           <directionalLight intensity={1.2} position={[5, 10, 5]} />
           <directionalLight intensity={0.5} position={[-5, 5, -5]} />
           <Suspense fallback={null}>
-            <RotatingCar modelPath="/models/car.glb" />
+            <RotatingCar modelPath="/models/Convertible.glb" />
           </Suspense>
           <OrbitControls enablePan={false} enableZoom={false} />
         </Canvas>
@@ -638,10 +639,10 @@ export const Lobby: React.FC = () => {
 /* ---------------------------
    Small 3D helper inside same file (UI-only)
    - Rotates slowly (auto 360) but still lets user drag via OrbitControls
-   - Expects model at /models/car.glb; fallback car-like shape is shown if model missing
+   - Expects model at /models/Convertible.glb; fallback car-like shape is shown if model missing
    --------------------------- */
 function RotatingCar({
-  modelPath = "/models/car.glb",
+  modelPath = "/models/Convertible.glb",
 }: {
   modelPath?: string;
 }) {
@@ -659,7 +660,7 @@ function RotatingCar({
   if (gltf && gltf.scene) {
     return (
       <group ref={group} position={[0, -0.6, 0]}>
-        <primitive object={gltf.scene} scale={[0.6, 0.6, 0.6]} />
+        <primitive object={gltf.scene} scale={[0.3, 0.3, 0.3]} />
       </group>
     );
   }
@@ -721,4 +722,4 @@ function RotatingCar({
 }
 
 // Preload the model to avoid loading delays
-useGLTF.preload("/models/car.glb");
+useGLTF.preload("/models/Convertible.glb");

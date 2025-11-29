@@ -72,6 +72,10 @@ class SocketService {
     this.socket?.emit('start-race');
   }
 
+  selectCar(carId: string): void {
+    this.socket?.emit('select-car', carId);
+  }
+
   // Game updates
   updatePosition(position: Omit<PlayerPosition, 'playerId' | 'username'>): void {
     this.socket?.emit('update-position', position);

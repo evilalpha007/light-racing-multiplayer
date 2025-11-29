@@ -232,19 +232,40 @@ export class GameEngine {
     // Centrifugal force
     this.playerX -= dx * speedPercent * playerSegment.curve * 0.3;
 
-    // Acceleration
+    // Acceleration and braking
     const accel = this.maxSpeed / 5;
     const breaking = -this.maxSpeed;
     const decel = -this.maxSpeed / 5;
     const offRoadDecel = -this.maxSpeed / 2;
     const offRoadLimit = this.maxSpeed / 4;
+    const reverseAccel = -this.maxSpeed / 10; // Slower reverse acceleration
 
     if (this.input.keyFaster) {
+      // Accelerate forward
       this.speed = Util.accelerate(this.speed, accel, dt);
     } else if (this.input.keySlower) {
-      this.speed = Util.accelerate(this.speed, breaking, dt);
+      // S key pressed - brake or reverse
+      if (this.speed > 0.5) {
+        // Braking forward motion (hard brake)
+        this.speed = Util.accelerate(this.speed, breaking, dt);
+      } else if (this.speed > 0) {
+        // Slow down to complete stop
+        this.speed = Util.accelerate(this.speed, decel * 2, dt);
+        if (this.speed < 0.1) this.speed = 0;
+      } else {
+        // Reverse (only when S is held and speed is 0)
+        this.speed = Util.accelerate(this.speed, reverseAccel, dt);
+      }
     } else {
-      this.speed = Util.accelerate(this.speed, decel, dt);
+      // No keys pressed - natural deceleration
+      if (this.speed > 0) {
+        this.speed = Util.accelerate(this.speed, decel, dt);
+        if (this.speed < 0.1) this.speed = 0; // Stop at zero
+      } else if (this.speed < 0) {
+        // Decelerate from reverse
+        this.speed = Util.accelerate(this.speed, -decel, dt);
+        if (this.speed > -0.1) this.speed = 0; // Stop at zero
+      }
     }
 
     // Off-road deceleration
@@ -253,7 +274,7 @@ export class GameEngine {
         this.speed = Util.accelerate(this.speed, offRoadDecel, dt);
       }
 
-      // Collision with sprites
+      // Collision with sprites (trees, billboards, etc.)
       for (const sprite of playerSegment.sprites) {
         const spriteW = sprite.source.w * SPRITES.SCALE;
         if (
@@ -264,7 +285,9 @@ export class GameEngine {
             spriteW
           )
         ) {
-          this.speed = 0; // Stop completely on collision
+          // Slow down significantly but don't stop completely
+          this.speed = this.maxSpeed / 5;
+          // Move player to front of segment (before sprite)
           this.position = Util.increase(
             playerSegment.p1.world.z,
             -this.playerZ,
@@ -275,9 +298,60 @@ export class GameEngine {
       }
     }
 
-    // Limits
+    // Car-to-car collision (remote players)
+    for (const [, remotePlayer] of this.remotePlayers.entries()) {
+      // Only check collision if we're going faster (overtaking)
+      if (this.speed > remotePlayer.speed) {
+        // Check if remote player is in same segment
+        const remotePlayerSegment = this.findSegment(remotePlayer.z);
+        if (remotePlayerSegment.index === playerSegment.index) {
+          const carW = playerW; // Use same width as player
+          // Use 0.8 overlap percent for tighter collision (from old code)
+          if (Util.overlap(this.playerX, playerW, remotePlayer.x, carW, 0.8)) {
+            // Slow down to match their speed
+            this.speed = remotePlayer.speed * (remotePlayer.speed / this.speed);
+            // Stop behind them
+            this.position = Util.increase(
+              remotePlayer.z,
+              -this.playerZ,
+              this.trackLength
+            );
+            break;
+          }
+        }
+      }
+    }
+
+    // Car-to-car collision (bots) - only if enabled
+    if (this.config.enableBots !== false) {
+      for (const bot of this.bots) {
+        // Only check collision if we're going faster (overtaking)
+        if (this.speed > bot.speed) {
+          // Check if bot is in same segment
+          const botSegment = this.findSegment(bot.z);
+          if (botSegment.index === playerSegment.index) {
+            const carW = playerW;
+            // Use 0.8 overlap percent for tighter collision
+            if (Util.overlap(this.playerX, playerW, bot.x, carW, 0.8)) {
+              // Slow down to match their speed
+              this.speed = bot.speed * (bot.speed / this.speed);
+              // Stop behind them
+              this.position = Util.increase(
+                bot.z,
+                -this.playerZ,
+                this.trackLength
+              );
+              break;
+            }
+          }
+        }
+      }
+    }
+
+    // Limits (allow negative speed for reverse)
     this.playerX = Util.limit(this.playerX, -3, 3);
-    this.speed = Util.limit(this.speed, 0, this.maxSpeed);
+    const maxReverseSpeed = -this.maxSpeed / 4;
+    this.speed = Util.limit(this.speed, maxReverseSpeed, this.maxSpeed);
 
     // Update Bots (only if enabled)
     if (this.config.enableBots !== false) {
@@ -359,8 +433,10 @@ export class GameEngine {
   private finishRace(): void {
     this.isFinished = true;
     if (this.onRaceFinished) {
+      // Calculate total time properly
+      const totalTime = this.currentLapTime + (this.lastLapTime * (this.maxLaps - 1));
       this.onRaceFinished({
-        totalTime: this.lastLapTime * this.maxLaps, // Approximate
+        totalTime: totalTime,
         fastestLap: this.fastestLapTime,
       });
     }

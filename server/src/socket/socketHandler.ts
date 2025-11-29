@@ -86,6 +86,7 @@ export class SocketHandler {
       this.handleLeaveRoom(socket);
       this.handleCloseRoom(socket);
       this.handleToggleReady(socket);
+      this.handleSelectCar(socket);
       this.handleStartRace(socket);
       this.handleUpdatePosition(socket);
       this.handleFinishRace(socket);
@@ -257,6 +258,25 @@ export class SocketHandler {
         }
       } catch (error) {
         console.error("Toggle ready error:", error);
+      }
+    });
+  }
+
+  /**
+   * Handle car selection
+   */
+  private handleSelectCar(
+    socket: Socket<ClientToServerEvents, ServerToClientEvents, {}, SocketData>
+  ): void {
+    socket.on("select-car", (carId) => {
+      try {
+        const room = this.roomManager.selectCar(socket.data.userId, carId);
+        if (room) {
+          this.io.to(room.id).emit("room-updated", room);
+          console.log(`🚗 ${socket.data.username} selected car: ${carId}`);
+        }
+      } catch (error) {
+        console.error("Select car error:", error);
       }
     });
   }

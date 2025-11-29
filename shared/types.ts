@@ -38,6 +38,7 @@ export interface RoomPlayer {
   username: string;
   isReady: boolean;
   isHost: boolean;
+  selectedCar?: string; // Car model ID
 }
 
 export interface RaceResult {
@@ -91,6 +92,7 @@ export interface ClientToServerEvents {
   "close-room": (roomId: string) => void;
   "toggle-ready": () => void;
   "start-race": () => void;
+  "select-car": (carId: string) => void;
   "update-position": (
     position: Omit<PlayerPosition, "playerId" | "username">
   ) => void;

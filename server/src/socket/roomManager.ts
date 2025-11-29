@@ -130,6 +130,28 @@ export class RoomManager {
   }
 
   /**
+   * Select car for player
+   */
+  selectCar(userId: string, carId: string): Room | null {
+    const roomId = this.userToRoom.get(userId);
+    if (!roomId) {
+      return null;
+    }
+
+    const room = this.rooms.get(roomId);
+    if (!room) {
+      return null;
+    }
+
+    const player = room.players.find((p) => p.userId === userId);
+    if (player) {
+      player.selectedCar = carId;
+    }
+
+    return room;
+  }
+
+  /**
    * Start race (host only)
    * Allows starting with minimum 2 players (host + 1 other player)
    */

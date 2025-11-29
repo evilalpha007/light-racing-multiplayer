@@ -58,9 +58,9 @@ app.get('/health', (req, res) => {
 // Initialize Socket.IO handler
 const socketHandler = new SocketHandler(io);
 
-// Get available rooms endpoint
+// Get available rooms endpoint (returns all waiting rooms)
 app.get('/api/rooms', (req, res) => {
-  const rooms = socketHandler.getAvailableRooms();
+  const rooms = socketHandler.getAllRooms();
   res.json({ rooms });
 });
 

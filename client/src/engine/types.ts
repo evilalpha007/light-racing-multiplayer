@@ -88,4 +88,5 @@ export interface GameConfig {
   cameraHeight: number;
   drawDistance: number;
   fogDensity: number;
+  enableBots?: boolean; // Add this
 }

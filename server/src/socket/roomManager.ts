@@ -1,6 +1,6 @@
-import { Room, RoomPlayer, PlayerPosition, RaceResult } from '../shared/types';
+import { Room, RoomPlayer, PlayerPosition, RaceResult } from "../shared/types";
 // import { Room, RoomPlayer, PlayerPosition, RaceResult } from '@shared/types';
-import { v4 as uuidv4 } from 'uuid';
+import { v4 as uuidv4 } from "uuid";
 
 export class RoomManager {
   private rooms: Map<string, Room> = new Map();
@@ -27,7 +27,7 @@ export class RoomManager {
         },
       ],
       maxPlayers: 4,
-      status: 'waiting',
+      status: "waiting",
       trackSeed,
       createdAt: new Date(),
     };
@@ -49,7 +49,7 @@ export class RoomManager {
       return null;
     }
 
-    if (room.status !== 'waiting') {
+    if (room.status !== "waiting") {
       return null;
     }
 
@@ -131,6 +131,7 @@ export class RoomManager {
 
   /**
    * Start race (host only)
+   * Allows starting with minimum 2 players (host + 1 other player)
    */
   startRace(userId: string): Room | null {
     const roomId = this.userToRoom.get(userId);
@@ -143,20 +144,25 @@ export class RoomManager {
       return null;
     }
 
-    // Check if all players are ready
-    const allReady = room.players.every((p) => p.isReady || p.isHost);
-    if (!allReady || room.players.length === 0) {
+    // Require at least 2 players (host + 1 other)
+    if (room.players.length < 2) {
       return null;
     }
 
-    room.status = 'countdown';
+    // Check if all players are ready (host doesn't need to be ready)
+    const allReady = room.players.every((p) => p.isReady || p.isHost);
+    if (!allReady) {
+      return null;
+    }
+
+    room.status = "countdown";
     return room;
   }
 
   /**
    * Set race status
    */
-  setRaceStatus(roomId: string, status: Room['status']): void {
+  setRaceStatus(roomId: string, status: Room["status"]): void {
     const room = this.rooms.get(roomId);
     if (room) {
       room.status = status;
@@ -166,7 +172,10 @@ export class RoomManager {
   /**
    * Update player position
    */
-  updatePlayerPosition(userId: string, position: Omit<PlayerPosition, 'playerId' | 'username'>): PlayerPosition | null {
+  updatePlayerPosition(
+    userId: string,
+    position: Omit<PlayerPosition, "playerId" | "username">
+  ): PlayerPosition | null {
     const roomId = this.userToRoom.get(userId);
     if (!roomId) {
       return null;
@@ -230,7 +239,17 @@ export class RoomManager {
    */
   getAvailableRooms(): Room[] {
     return Array.from(this.rooms.values()).filter(
-      (room) => room.status === 'waiting' && room.players.length < room.maxPlayers
+      (room) =>
+        room.status === "waiting" && room.players.length < room.maxPlayers
+    );
+  }
+
+  /**
+   * Get all rooms (for displaying in lobby)
+   */
+  getAllRooms(): Room[] {
+    return Array.from(this.rooms.values()).filter(
+      (room) => room.status === "waiting"
     );
   }
 
@@ -239,5 +258,26 @@ export class RoomManager {
    */
   getRoomIdByUserId(userId: string): string | undefined {
     return this.userToRoom.get(userId);
+  }
+
+  /**
+   * Delete a room completely (used when host closes room)
+   */
+  deleteRoom(roomId: string): boolean {
+    const room = this.rooms.get(roomId);
+    if (!room) {
+      return false;
+    }
+
+    // Remove all players from userToRoom mapping
+    room.players.forEach((player) => {
+      this.userToRoom.delete(player.userId);
+    });
+
+    // Delete the room and its positions
+    this.rooms.delete(roomId);
+    this.playerPositions.delete(roomId);
+
+    return true;
   }
 }

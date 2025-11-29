@@ -1,11 +1,9 @@
 import React, { useEffect, useRef, useState } from "react";
-import { useParams, useNavigate } from "react-router-dom";
-import { socketService } from "../../services/socket";
+import { useNavigate } from "react-router-dom";
 import { GameEngine } from "../../engine/GameEngine";
 import "./MultiplayerGame.css";
 
-export const MultiplayerGame: React.FC = () => {
-  useParams();
+export const SinglePlayerGame: React.FC = () => {
   const navigate = useNavigate();
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const engineRef = useRef<GameEngine | null>(null);
@@ -33,11 +31,11 @@ export const MultiplayerGame: React.FC = () => {
         const width = container?.clientWidth || window.innerWidth;
         const height = container?.clientHeight || window.innerHeight - 100;
 
-        // Create game engine (disable bots in multiplayer)
+        // Create game engine (enable bots for single-player mode)
         const engine = new GameEngine(canvasRef.current!, {
           width,
           height,
-          enableBots: false, // No bots in multiplayer - only real players
+          enableBots: true, // Enable bots in single-player mode
         });
 
         // Load assets
@@ -46,44 +44,9 @@ export const MultiplayerGame: React.FC = () => {
         // Initialize game
         engine.init();
 
-        // Set up multiplayer position updates
-        engine.setPositionUpdateCallback((data) => {
-          // Send position to server every 50ms (handled by throttling)
-          socketService.updatePosition(data);
-        });
-
-        // Listen for remote player positions
-        socketService.onPlayerPosition((position) => {
-          engine.updateRemotePlayer(position);
-        });
-
-        // Send initial position immediately when game starts (all players start at 0)
-        // This ensures all players see each other at the start line
-        // Send multiple times to ensure sync (network delays)
-        const sendInitialPosition = () => {
-          if (engineRef.current) {
-            socketService.updatePosition({
-              x: 0,
-              z: 0,
-              speed: 0,
-              lapTime: 0,
-              position: 1,
-            });
-          }
-        };
-        // Send immediately and after a short delay
-        sendInitialPosition();
-        setTimeout(sendInitialPosition, 100);
-        setTimeout(sendInitialPosition, 300);
-
-        socketService.onPlayerLeft((playerId) => {
-          engine.removeRemotePlayer(playerId);
-        });
-
-        // Handle race finish
+        // Handle race finish (no multiplayer callbacks needed)
         engine.setRaceFinishedCallback((results) => {
           setRaceResults(results);
-          socketService.finishRace(results.totalTime);
         });
 
         // Start game
@@ -121,8 +84,6 @@ export const MultiplayerGame: React.FC = () => {
       if (engineRef.current) {
         engineRef.current.stop();
       }
-      socketService.off("player-position");
-      socketService.off("player-left");
     };
   }, []);
 
@@ -130,7 +91,6 @@ export const MultiplayerGame: React.FC = () => {
     if (engineRef.current) {
       engineRef.current.stop();
     }
-    socketService.leaveRoom();
     navigate("/lobby");
   };
 
@@ -213,8 +173,8 @@ export const MultiplayerGame: React.FC = () => {
               <span className="hud-value">{formatTime(fastestLapTime)}</span>
             </div>
           )}
-          <button onClick={handleLeave} className="btn-leave cursor-pointer ">
-            Leave Race
+          <button onClick={handleLeave} className="btn-leave cursor-pointer">
+            Back to Lobby
           </button>
         </div>
       )}
@@ -225,6 +185,9 @@ export const MultiplayerGame: React.FC = () => {
         <div className="game-controls">
           <p>🎮 Arrow Keys or WASD to control</p>
           <p>↑ Accelerate | ↓ Brake | ← → Steer</p>
+          <p style={{ marginTop: "10px", fontSize: "0.9rem", opacity: 0.8 }}>
+            🤖 Racing against bots
+          </p>
         </div>
       )}
     </div>

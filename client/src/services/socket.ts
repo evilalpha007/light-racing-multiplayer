@@ -114,6 +114,10 @@ class SocketService {
     this.socket?.on('race-finished', callback);
   }
 
+  onRoomClosed(callback: (roomId: string) => void): void {
+    this.socket?.on('room-closed', callback);
+  }
+
   // Remove listeners
   off(event: keyof ServerToClientEvents): void {
     this.socket?.off(event);

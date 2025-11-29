@@ -1,12 +1,12 @@
-import { Server, Socket } from 'socket.io';
-import { JWTService } from '../services/jwtService';
-import { SessionService } from '../services/sessionService';
-import { RoomManager } from './roomManager';
+import { Server, Socket } from "socket.io";
+import { JWTService } from "../services/jwtService";
+import { SessionService } from "../services/sessionService";
+import { RoomManager } from "./roomManager";
 import {
   ServerToClientEvents,
   ClientToServerEvents,
   PlayerPosition,
-} from '../shared/types';
+} from "../shared/types";
 
 interface SocketData {
   userId: string;
@@ -15,10 +15,17 @@ interface SocketData {
 }
 
 export class SocketHandler {
-  private io: Server<ClientToServerEvents, ServerToClientEvents, {}, SocketData>;
+  private io: Server<
+    ClientToServerEvents,
+    ServerToClientEvents,
+    {},
+    SocketData
+  >;
   private roomManager: RoomManager;
 
-  constructor(io: Server<ClientToServerEvents, ServerToClientEvents, {}, SocketData>) {
+  constructor(
+    io: Server<ClientToServerEvents, ServerToClientEvents, {}, SocketData>
+  ) {
     this.io = io;
     this.roomManager = new RoomManager();
     this.setupMiddleware();
@@ -34,19 +41,19 @@ export class SocketHandler {
         const token = socket.handshake.auth.token;
 
         if (!token) {
-          return next(new Error('Authentication error: No token provided'));
+          return next(new Error("Authentication error: No token provided"));
         }
 
         // Verify JWT
         const payload = JWTService.verifyToken(token);
         if (!payload) {
-          return next(new Error('Authentication error: Invalid token'));
+          return next(new Error("Authentication error: Invalid token"));
         }
 
         // Check session
         const session = await SessionService.getActiveSession(token);
         if (!session) {
-          return next(new Error('Authentication error: Session expired'));
+          return next(new Error("Authentication error: Session expired"));
         }
 
         // Attach user data to socket
@@ -59,7 +66,7 @@ export class SocketHandler {
 
         next();
       } catch (error) {
-        next(new Error('Authentication error'));
+        next(new Error("Authentication error"));
       }
     });
   }
@@ -68,8 +75,11 @@ export class SocketHandler {
    * Setup connection handler
    */
   private setupConnectionHandler(): void {
-    this.io.on('connection', (socket) => {
+    this.io.on("connection", (socket) => {
       console.log(`✅ User connected: ${socket.data.username} (${socket.id})`);
+
+      // Restore user's room on reconnection
+      this.restoreUserRoom(socket);
 
       this.handleCreateRoom(socket);
       this.handleJoinRoom(socket);
@@ -84,10 +94,34 @@ export class SocketHandler {
   }
 
   /**
+   * Restore user's room on reconnection
+   */
+  private restoreUserRoom(
+    socket: Socket<ClientToServerEvents, ServerToClientEvents, {}, SocketData>
+  ): void {
+    try {
+      const room = this.roomManager.getRoomByUserId(socket.data.userId);
+      if (room && room.status === "waiting") {
+        // User was in a room, restore their connection
+        socket.join(room.id);
+        // Update room to reflect reconnection
+        this.io.to(room.id).emit("room-updated", room);
+        console.log(
+          `🔄 Restored room connection for ${socket.data.username}: ${room.name}`
+        );
+      }
+    } catch (error) {
+      console.error("Error restoring user room:", error);
+    }
+  }
+
+  /**
    * Handle create room
    */
-  private handleCreateRoom(socket: Socket<ClientToServerEvents, ServerToClientEvents, {}, SocketData>): void {
-    socket.on('create-room', (roomName, callback) => {
+  private handleCreateRoom(
+    socket: Socket<ClientToServerEvents, ServerToClientEvents, {}, SocketData>
+  ): void {
+    socket.on("create-room", (roomName, callback) => {
       try {
         const room = this.roomManager.createRoom(
           socket.data.userId,
@@ -98,9 +132,12 @@ export class SocketHandler {
         socket.join(room.id);
         callback(room);
 
+        // Broadcast room creation to all clients (for lobby updates)
+        this.io.emit("room-created", room);
+
         console.log(`🎮 Room created: ${room.name} by ${socket.data.username}`);
       } catch (error) {
-        console.error('Create room error:', error);
+        console.error("Create room error:", error);
         callback(null);
       }
     });
@@ -109,8 +146,10 @@ export class SocketHandler {
   /**
    * Handle join room
    */
-  private handleJoinRoom(socket: Socket<ClientToServerEvents, ServerToClientEvents, {}, SocketData>): void {
-    socket.on('join-room', (roomId, callback) => {
+  private handleJoinRoom(
+    socket: Socket<ClientToServerEvents, ServerToClientEvents, {}, SocketData>
+  ): void {
+    socket.on("join-room", (roomId, callback) => {
       try {
         const room = this.roomManager.joinRoom(
           roomId,
@@ -127,16 +166,18 @@ export class SocketHandler {
         callback(true);
 
         // Notify all players in room
-        this.io.to(roomId).emit('room-updated', room);
+        this.io.to(roomId).emit("room-updated", room);
 
-        const newPlayer = room.players.find((p) => p.userId === socket.data.userId);
+        const newPlayer = room.players.find(
+          (p) => p.userId === socket.data.userId
+        );
         if (newPlayer) {
-          socket.to(roomId).emit('player-joined', newPlayer);
+          socket.to(roomId).emit("player-joined", newPlayer);
         }
 
         console.log(`👤 ${socket.data.username} joined room: ${room.name}`);
       } catch (error) {
-        console.error('Join room error:', error);
+        console.error("Join room error:", error);
         callback(false);
       }
     });
@@ -145,8 +186,10 @@ export class SocketHandler {
   /**
    * Handle leave room
    */
-  private handleLeaveRoom(socket: Socket<ClientToServerEvents, ServerToClientEvents, {}, SocketData>): void {
-    socket.on('leave-room', () => {
+  private handleLeaveRoom(
+    socket: Socket<ClientToServerEvents, ServerToClientEvents, {}, SocketData>
+  ): void {
+    socket.on("leave-room", () => {
       this.leaveCurrentRoom(socket);
     });
   }
@@ -154,31 +197,37 @@ export class SocketHandler {
   /**
    * Handle close room (host only)
    */
-  private handleCloseRoom(socket: Socket<ClientToServerEvents, ServerToClientEvents, {}, SocketData>): void {
-    socket.on('close-room', (roomId: string) => {
+  private handleCloseRoom(
+    socket: Socket<ClientToServerEvents, ServerToClientEvents, {}, SocketData>
+  ): void {
+    socket.on("close-room", (roomId: string) => {
       try {
         const room = this.roomManager.getRoom(roomId);
-        
+
         // Verify the user is the host
         if (!room || room.hostId !== socket.data.userId) {
-          socket.emit('error', 'Only the host can close the room');
+          socket.emit("error", "Only the host can close the room");
           return;
         }
 
         // Get all players in the room before closing
-        const playerIds = room.players.map(p => p.userId);
+        const playerIds = room.players.map((p) => p.userId);
 
-        // Close the room (this will remove it from roomManager)
-        const result = this.roomManager.leaveRoom(socket.data.userId);
-        
-        if (result) {
-          // Notify all players that the room was closed
-          this.io.to(roomId).emit('error', 'Room has been closed by the host');
-          
+        // Delete the room completely
+        const deleted = this.roomManager.deleteRoom(roomId);
+
+        if (deleted) {
+          // Notify all players in the room that it was closed
+          this.io.to(roomId).emit("error", "Room has been closed by the host");
+          this.io.to(roomId).emit("room-closed", roomId);
+
+          // Broadcast to all clients (for lobby updates)
+          this.io.emit("room-closed", roomId);
+
           // Make all players leave the socket room
-          playerIds.forEach(playerId => {
+          playerIds.forEach((playerId) => {
             const sockets = this.io.sockets.sockets;
-            sockets.forEach(s => {
+            sockets.forEach((s) => {
               if (s.data.userId === playerId) {
                 s.leave(roomId);
               }
@@ -188,8 +237,8 @@ export class SocketHandler {
           console.log(`🚪 Room closed by host: ${socket.data.username}`);
         }
       } catch (error) {
-        console.error('Close room error:', error);
-        socket.emit('error', 'Failed to close room');
+        console.error("Close room error:", error);
+        socket.emit("error", "Failed to close room");
       }
     });
   }
@@ -197,15 +246,17 @@ export class SocketHandler {
   /**
    * Handle toggle ready
    */
-  private handleToggleReady(socket: Socket<ClientToServerEvents, ServerToClientEvents, {}, SocketData>): void {
-    socket.on('toggle-ready', () => {
+  private handleToggleReady(
+    socket: Socket<ClientToServerEvents, ServerToClientEvents, {}, SocketData>
+  ): void {
+    socket.on("toggle-ready", () => {
       try {
         const room = this.roomManager.toggleReady(socket.data.userId);
         if (room) {
-          this.io.to(room.id).emit('room-updated', room);
+          this.io.to(room.id).emit("room-updated", room);
         }
       } catch (error) {
-        console.error('Toggle ready error:', error);
+        console.error("Toggle ready error:", error);
       }
     });
   }
@@ -213,30 +264,32 @@ export class SocketHandler {
   /**
    * Handle start race
    */
-  private handleStartRace(socket: Socket<ClientToServerEvents, ServerToClientEvents, {}, SocketData>): void {
-    socket.on('start-race', () => {
+  private handleStartRace(
+    socket: Socket<ClientToServerEvents, ServerToClientEvents, {}, SocketData>
+  ): void {
+    socket.on("start-race", () => {
       try {
         const room = this.roomManager.startRace(socket.data.userId);
         if (!room) {
-          socket.emit('error', 'Cannot start race');
+          socket.emit("error", "Cannot start race");
           return;
         }
 
         // Start countdown
         let countdown = 3;
         const countdownInterval = setInterval(() => {
-          this.io.to(room.id).emit('race-countdown', countdown);
+          this.io.to(room.id).emit("race-countdown", countdown);
           countdown--;
 
           if (countdown < 0) {
             clearInterval(countdownInterval);
-            this.roomManager.setRaceStatus(room.id, 'racing');
-            this.io.to(room.id).emit('race-started');
+            this.roomManager.setRaceStatus(room.id, "racing");
+            this.io.to(room.id).emit("race-started");
             console.log(`🏁 Race started in room: ${room.name}`);
           }
         }, 1000);
       } catch (error) {
-        console.error('Start race error:', error);
+        console.error("Start race error:", error);
       }
     });
   }
@@ -244,8 +297,10 @@ export class SocketHandler {
   /**
    * Handle update position
    */
-  private handleUpdatePosition(socket: Socket<ClientToServerEvents, ServerToClientEvents, {}, SocketData>): void {
-    socket.on('update-position', (position) => {
+  private handleUpdatePosition(
+    socket: Socket<ClientToServerEvents, ServerToClientEvents, {}, SocketData>
+  ): void {
+    socket.on("update-position", (position) => {
       try {
         const fullPosition = this.roomManager.updatePlayerPosition(
           socket.data.userId,
@@ -256,11 +311,11 @@ export class SocketHandler {
           const roomId = this.roomManager.getRoomIdByUserId(socket.data.userId);
           if (roomId) {
             // Broadcast to other players in room
-            socket.to(roomId).emit('player-position', fullPosition);
+            socket.to(roomId).emit("player-position", fullPosition);
           }
         }
       } catch (error) {
-        console.error('Update position error:', error);
+        console.error("Update position error:", error);
       }
     });
   }
@@ -268,8 +323,10 @@ export class SocketHandler {
   /**
    * Handle finish race
    */
-  private handleFinishRace(socket: Socket<ClientToServerEvents, ServerToClientEvents, {}, SocketData>): void {
-    socket.on('finish-race', (lapTime) => {
+  private handleFinishRace(
+    socket: Socket<ClientToServerEvents, ServerToClientEvents, {}, SocketData>
+  ): void {
+    socket.on("finish-race", (lapTime) => {
       try {
         const room = this.roomManager.getRoomByUserId(socket.data.userId);
         if (!room) {
@@ -277,12 +334,14 @@ export class SocketHandler {
         }
 
         // TODO: Store race results in database
-        console.log(`🏆 ${socket.data.username} finished with time: ${lapTime}s`);
+        console.log(
+          `🏆 ${socket.data.username} finished with time: ${lapTime}s`
+        );
 
         // For now, just notify the room
         // In a full implementation, you'd track all finishers and emit final results
       } catch (error) {
-        console.error('Finish race error:', error);
+        console.error("Finish race error:", error);
       }
     });
   }
@@ -290,9 +349,13 @@ export class SocketHandler {
   /**
    * Handle disconnect
    */
-  private handleDisconnect(socket: Socket<ClientToServerEvents, ServerToClientEvents, {}, SocketData>): void {
-    socket.on('disconnect', () => {
-      console.log(`❌ User disconnected: ${socket.data.username} (${socket.id})`);
+  private handleDisconnect(
+    socket: Socket<ClientToServerEvents, ServerToClientEvents, {}, SocketData>
+  ): void {
+    socket.on("disconnect", () => {
+      console.log(
+        `❌ User disconnected: ${socket.data.username} (${socket.id})`
+      );
       this.leaveCurrentRoom(socket);
     });
   }
@@ -300,7 +363,9 @@ export class SocketHandler {
   /**
    * Helper: Leave current room
    */
-  private leaveCurrentRoom(socket: Socket<ClientToServerEvents, ServerToClientEvents, {}, SocketData>): void {
+  private leaveCurrentRoom(
+    socket: Socket<ClientToServerEvents, ServerToClientEvents, {}, SocketData>
+  ): void {
     try {
       const result = this.roomManager.leaveRoom(socket.data.userId);
       if (result) {
@@ -309,14 +374,14 @@ export class SocketHandler {
 
         if (room) {
           // Notify remaining players
-          this.io.to(roomId).emit('room-updated', room);
-          this.io.to(roomId).emit('player-left', socket.data.userId);
+          this.io.to(roomId).emit("room-updated", room);
+          this.io.to(roomId).emit("player-left", socket.data.userId);
         }
 
         console.log(`👋 ${socket.data.username} left room`);
       }
     } catch (error) {
-      console.error('Leave room error:', error);
+      console.error("Leave room error:", error);
     }
   }
 
@@ -325,5 +390,12 @@ export class SocketHandler {
    */
   getAvailableRooms() {
     return this.roomManager.getAvailableRooms();
+  }
+
+  /**
+   * Get all rooms (for lobby display)
+   */
+  getAllRooms() {
+    return this.roomManager.getAllRooms();
   }
 }

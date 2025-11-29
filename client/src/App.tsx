@@ -9,6 +9,7 @@ import { ProtectedRoute } from './components/Auth/ProtectedRoute';
 import { Lobby } from './components/Lobby/Lobby';
 import { WaitingRoom } from './components/Lobby/WaitingRoom';
 import { MultiplayerGame } from './components/Game/MultiplayerGame';
+import { SinglePlayerGame } from './components/Game/SinglePlayerGame';
 
 function App() {
   return (
@@ -43,6 +44,15 @@ function App() {
             element={
               <ProtectedRoute>
                 <MultiplayerGame />
+              </ProtectedRoute>
+            }
+          />
+          
+          <Route
+            path="/single-player"
+            element={
+              <ProtectedRoute>
+                <SinglePlayerGame />
               </ProtectedRoute>
             }
           />

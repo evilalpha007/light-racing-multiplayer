@@ -474,26 +474,27 @@ export const Lobby: React.FC = () => {
 /* ---------------------------
    Small 3D helper inside same file (UI-only)
    - Rotates slowly (auto 360) but still lets user drag via OrbitControls
-   - Expects model at /models/car.glb; fallback box is shown if model missing
+   - Expects model at /models/car.glb; fallback car-like shape is shown if model missing
    --------------------------- */
 function RotatingCar({ modelPath = '/models/car.glb' }: { modelPath?: string }) {
-  const group = useRef<any>();
-  useFrame((state, delta) => {
+  const group = useRef<any>(null);
+  const [modelError, setModelError] = useState(false);
+  
+  useFrame((_, delta) => {
     if (group.current) group.current.rotation.y += delta * 0.6; // adjust speed
   });
 
-  // useGLTF will throw if model not found; Suspense fallback shows "Loading car..."
-  // cast to any to keep TS happy if you don't have types for GLTF.
+  // Try to load the GLTF model with error handling
   let gltf: any = null;
   try {
-    gltf = useGLTF(modelPath) as any;
+    gltf = useGLTF(modelPath);
   } catch (e) {
-    // If hook throws, React will handle it via Suspense boundary.
-    // This catch block won't actually catch the hook error — it's here for clarity.
+    console.error('Failed to load car model:', e);
+    setModelError(true);
   }
 
-  // If model loads, render it; otherwise render a placeholder box
-  if (gltf && gltf.scene) {
+  // If model loads successfully, render it
+  if (gltf && gltf.scene && !modelError) {
     return (
       <group ref={group} position={[0, -0.6, 0]}>
         <primitive object={gltf.scene} scale={[0.6, 0.6, 0.6]} />
@@ -501,13 +502,53 @@ function RotatingCar({ modelPath = '/models/car.glb' }: { modelPath?: string }) 
     );
   }
 
-  // Fallback placeholder
+  // Fallback: More car-like placeholder (not just a box)
   return (
-    <group ref={group}>
-      <mesh rotation={[0, 0, 0]} position={[0, 0, 0]}>
-        <boxGeometry args={[1.6, 0.6, 3]} />
-        <meshStandardMaterial metalness={0.3} roughness={0.4} />
+    <group ref={group} position={[0, -0.3, 0]}>
+      {/* Car body */}
+      <mesh position={[0, 0.2, 0]}>
+        <boxGeometry args={[1.2, 0.4, 2.4]} />
+        <meshStandardMaterial color="#e74c3c" metalness={0.6} roughness={0.3} />
+      </mesh>
+      
+      {/* Car roof/cabin */}
+      <mesh position={[0, 0.5, -0.2]}>
+        <boxGeometry args={[0.9, 0.35, 1.2]} />
+        <meshStandardMaterial color="#c0392b" metalness={0.6} roughness={0.3} />
+      </mesh>
+      
+      {/* Front wheels */}
+      <mesh position={[-0.6, -0.1, 0.8]} rotation={[0, 0, Math.PI / 2]}>
+        <cylinderGeometry args={[0.25, 0.25, 0.15, 16]} />
+        <meshStandardMaterial color="#2c3e50" metalness={0.8} roughness={0.2} />
+      </mesh>
+      <mesh position={[0.6, -0.1, 0.8]} rotation={[0, 0, Math.PI / 2]}>
+        <cylinderGeometry args={[0.25, 0.25, 0.15, 16]} />
+        <meshStandardMaterial color="#2c3e50" metalness={0.8} roughness={0.2} />
+      </mesh>
+      
+      {/* Back wheels */}
+      <mesh position={[-0.6, -0.1, -0.8]} rotation={[0, 0, Math.PI / 2]}>
+        <cylinderGeometry args={[0.25, 0.25, 0.15, 16]} />
+        <meshStandardMaterial color="#2c3e50" metalness={0.8} roughness={0.2} />
+      </mesh>
+      <mesh position={[0.6, -0.1, -0.8]} rotation={[0, 0, Math.PI / 2]}>
+        <cylinderGeometry args={[0.25, 0.25, 0.15, 16]} />
+        <meshStandardMaterial color="#2c3e50" metalness={0.8} roughness={0.2} />
+      </mesh>
+      
+      {/* Headlights */}
+      <mesh position={[-0.4, 0.15, 1.21]}>
+        <boxGeometry args={[0.15, 0.1, 0.05]} />
+        <meshStandardMaterial color="#f1c40f" emissive="#f1c40f" emissiveIntensity={0.5} />
+      </mesh>
+      <mesh position={[0.4, 0.15, 1.21]}>
+        <boxGeometry args={[0.15, 0.1, 0.05]} />
+        <meshStandardMaterial color="#f1c40f" emissive="#f1c40f" emissiveIntensity={0.5} />
       </mesh>
     </group>
   );
 }
+
+// Preload the model to avoid loading delays
+useGLTF.preload('/models/car.glb');

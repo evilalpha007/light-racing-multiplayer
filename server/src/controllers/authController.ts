@@ -206,38 +206,26 @@ export class AuthController {
       if (!user) {
         // Don't reveal if user exists or not for security
         res.status(200).json({
-          message: 'If an account exists with this email, a password reset link has been sent.',
+          message: 'If an account exists with this email, a password reset OTP has been sent.',
         });
         return;
       }
 
-      // Generate reset token
-      const resetToken = crypto.randomBytes(32).toString('hex');
-      const hashedToken = crypto
-        .createHash('sha256')
-        .update(resetToken)
-        .digest('hex');
+      // Generate 6-digit OTP
+      const otp = Math.floor(100000 + Math.random() * 900000).toString();
 
-      // Save hashed token and expiration to user
-      user.resetPasswordToken = hashedToken;
-      user.resetPasswordExpires = new Date(Date.now() + 60 * 60 * 1000); // 1 hour
+      // Save OTP and expiration to user (10 minutes)
+      user.resetPasswordOTP = otp;
+      user.resetPasswordOTPExpires = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
       await user.save();
 
-      // Get frontend URL from environment or use default
-      const frontendUrl =
-        process.env.FRONTEND_URL || 'http://localhost:5173';
+      // Send email with OTP
+      await emailService.sendPasswordResetEmail(user.email, otp);
 
-      // Send email
-      await emailService.sendPasswordResetEmail(
-        user.email,
-        resetToken,
-        frontendUrl
-      );
-
-      console.log(`✅ Password reset requested for: ${user.email}`);
+      console.log(`✅ Password reset OTP sent to: ${user.email}`);
 
       res.status(200).json({
-        message: 'If an account exists with this email, a password reset link has been sent.',
+        message: 'If an account exists with this email, a password reset OTP has been sent.',
       });
     } catch (error: any) {
       console.error('Forgot password error:', error);
@@ -246,16 +234,15 @@ export class AuthController {
   }
 
   /**
-   * Reset password with token
+   * Reset password with OTP
    */
   static async resetPassword(req: Request, res: Response): Promise<void> {
     try {
-      const { token } = req.params;
-      const { password } = req.body;
+      const { email, otp, password } = req.body;
 
       // Validate input
-      if (!password) {
-        res.status(400).json({ error: 'Password is required' });
+      if (!email || !otp || !password) {
+        res.status(400).json({ error: 'Email, OTP, and password are required' });
         return;
       }
 
@@ -264,30 +251,31 @@ export class AuthController {
         return;
       }
 
-      // Hash the token from URL
-      const hashedToken = crypto
-        .createHash('sha256')
-        .update(token)
-        .digest('hex');
+      // Validate OTP format (6 digits)
+      if (!/^\d{6}$/.test(otp)) {
+        res.status(400).json({ error: 'OTP must be 6 digits' });
+        return;
+      }
 
-      // Find user with valid token
+      // Find user with valid OTP
       const user = await User.findOne({
-        resetPasswordToken: hashedToken,
-        resetPasswordExpires: { $gt: new Date() },
+        email: email.toLowerCase(),
+        resetPasswordOTP: otp,
+        resetPasswordOTPExpires: { $gt: new Date() },
       });
 
       if (!user) {
-        res.status(400).json({ error: 'Invalid or expired reset token' });
+        res.status(400).json({ error: 'Invalid or expired OTP' });
         return;
       }
 
       // Hash new password
       const hashedPassword = await bcrypt.hash(password, 10);
 
-      // Update password and clear reset token
+      // Update password and clear OTP
       user.password = hashedPassword;
-      user.resetPasswordToken = undefined;
-      user.resetPasswordExpires = undefined;
+      user.resetPasswordOTP = undefined;
+      user.resetPasswordOTPExpires = undefined;
       await user.save();
 
       // Terminate all existing sessions for security

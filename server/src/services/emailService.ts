@@ -1,6 +1,6 @@
 import nodemailer from 'nodemailer';
-import fs from 'fs';
-import path from 'path';
+// import fs from 'fs';
+// import path from 'path';
 
 interface EmailOptions {
   to: string;
@@ -55,16 +55,16 @@ class EmailService {
         console.log('═══════════════════════════════════════\n');
 
         // Also append to a file for easier retrieval
-        const logPath = path.join(process.cwd(), 'email-logs.txt');
-        const logEntry = `\n[${new Date().toISOString()}] To: ${options.to}\nSubject: ${options.subject}\n${options.text}\n----------------------------------------\n`;
-        fs.appendFileSync(logPath, logEntry);
+        // const logPath = path.join(process.cwd(), 'email-logs.txt');
+        // const logEntry = `\n[${new Date().toISOString()}] To: ${options.to}\nSubject: ${options.subject}\n${options.text}\n----------------------------------------\n`;
+        // fs.appendFileSync(logPath, logEntry);
         
         return true;
       }
 
       // Send actual email
       await this.transporter.sendMail({
-        from: `"Pixel Racing" <${process.env.EMAIL_USER}>`,
+        from: `"Light Racing" <${process.env.EMAIL_USER}>`,
         to: options.to,
         subject: options.subject,
         text: options.text,
@@ -81,66 +81,76 @@ class EmailService {
 
   async sendPasswordResetEmail(
     email: string,
-    resetToken: string,
-    frontendUrl: string
+    otp: string
   ): Promise<boolean> {
-    const resetUrl = `${frontendUrl}/reset-password/${resetToken}`;
-
     const text = `
 Hello,
 
-You requested to reset your password for Pixel Racing.
+You requested to reset your password for Light Racing.
 
-Click the link below to reset your password:
-${resetUrl}
+Your password reset OTP is:
 
-This link will expire in 1 hour.
+${otp}
+
+This OTP will expire in 10 minutes.
+
+To reset your password:
+1. Go to the Reset Password page
+2. Enter your email address
+3. Enter this OTP
+4. Set your new password
 
 If you didn't request this, please ignore this email.
 
 Happy Racing! 🏁
-Pixel Racing Team
+Light Racing Team
     `.trim();
 
     const html = `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-        <h2 style="color: #f59e0b;">🏁 Pixel Racing - Password Reset</h2>
+        <h2 style="color: #f59e0b;">🏁 Light Racing - Password Reset</h2>
         <p>Hello,</p>
-        <p>You requested to reset your password for Pixel Racing.</p>
-        <p>Click the button below to reset your password:</p>
+        <p>You requested to reset your password for Light Racing.</p>
+        <p>Your password reset OTP is:</p>
         <div style="text-align: center; margin: 30px 0;">
-          <a href="${resetUrl}" 
-             style="background: linear-gradient(to right, #f59e0b, #ec4899); 
-                    color: white; 
-                    padding: 12px 30px; 
-                    text-decoration: none; 
-                    border-radius: 8px;
-                    display: inline-block;
-                    font-weight: bold;">
-            Reset Password
-          </a>
+          <div style="background: linear-gradient(to right, #f59e0b, #ec4899); 
+                     color: white; 
+                     padding: 20px 40px; 
+                     font-size: 32px;
+                     font-weight: bold;
+                     letter-spacing: 8px;
+                     border-radius: 12px;
+                     display: inline-block;
+                     font-family: 'Courier New', monospace;">
+            ${otp}
+          </div>
         </div>
         <p style="color: #666; font-size: 14px;">
-          Or copy and paste this link in your browser:<br>
-          <a href="${resetUrl}">${resetUrl}</a>
+          This OTP will expire in <strong>10 minutes</strong>.
         </p>
         <p style="color: #666; font-size: 14px;">
-          This link will expire in 1 hour.
+          To reset your password:
         </p>
+        <ol style="color: #666; font-size: 14px;">
+          <li>Go to the Reset Password page</li>
+          <li>Enter your email address</li>
+          <li>Enter this OTP</li>
+          <li>Set your new password</li>
+        </ol>
         <p style="color: #666; font-size: 14px;">
           If you didn't request this, please ignore this email.
         </p>
         <hr style="border: none; border-top: 1px solid #eee; margin: 30px 0;">
         <p style="color: #999; font-size: 12px;">
           Happy Racing! 🏁<br>
-          Pixel Racing Team
+          Light Racing Team
         </p>
       </div>
     `;
 
     return this.sendEmail({
       to: email,
-      subject: '🏁 Reset Your Pixel Racing Password',
+      subject: '🏁 Your Light Racing Password Reset OTP',
       text,
       html,
     });

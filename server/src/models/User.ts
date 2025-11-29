@@ -9,8 +9,8 @@ export interface IUser extends Document {
     wins: number;
     bestLapTime: number;
   };
-  resetPasswordToken?: string;
-  resetPasswordExpires?: Date;
+  resetPasswordOTP?: string;
+  resetPasswordOTPExpires?: Date;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -52,11 +52,11 @@ const userSchema = new Schema<IUser>(
         default: 0,
       },
     },
-    resetPasswordToken: {
+    resetPasswordOTP: {
       type: String,
       default: undefined,
     },
-    resetPasswordExpires: {
+    resetPasswordOTPExpires: {
       type: Date,
       default: undefined,
     },

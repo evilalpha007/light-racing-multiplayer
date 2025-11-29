@@ -146,7 +146,7 @@ export const Login: React.FC = () => {
             {/* Footer */}
             <div className="mt-8 text-center">
               <p className="text-white/60 text-sm">
-                New to Pixel Racing?{' '}
+                New to Light Racing?{' '}
                 <Link to="/register" className="text-yellow-400 hover:text-yellow-300 font-semibold transition-colors duration-300">
                   Register
                 </Link>

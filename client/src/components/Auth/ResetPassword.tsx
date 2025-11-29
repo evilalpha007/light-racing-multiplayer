@@ -1,18 +1,21 @@
 import React, { useState } from 'react';
-import { useNavigate, useParams, Link } from 'react-router-dom';
+import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { authService } from '../../services/api';
 import './Auth.css';
 import { Lock, CheckCircle, ArrowLeft } from 'lucide-react';
 
 export const ResetPassword: React.FC = () => {
+  const location = useLocation();
+  const navigate = useNavigate();
+  
+  // Pre-fill email from navigation state (from forgot password page)
+  const [email, setEmail] = useState((location.state as any)?.email || '');
+  const [otp, setOtp] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
-  
-  const { token } = useParams<{ token: string }>();
-  const navigate = useNavigate();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -29,11 +32,15 @@ export const ResetPassword: React.FC = () => {
       return;
     }
 
+    if (!/^\d{6}$/.test(otp)) {
+      setError('OTP must be 6 digits');
+      return;
+    }
+
     setLoading(true);
 
     try {
-      if (!token) throw new Error('Invalid token');
-      const response = await authService.resetPassword(token, password);
+      const response = await authService.resetPassword(email, otp, password);
       setMessage(response.message);
       
       // Redirect to login after 3 seconds
@@ -109,6 +116,44 @@ export const ResetPassword: React.FC = () => {
             {/* Form */}
             {!message && (
               <form onSubmit={handleSubmit} className="space-y-6">
+                <div className="space-y-2">
+                  <label htmlFor="email" className="block text-white/90 text-sm font-medium tracking-wide">
+                    Email Address
+                  </label>
+                  <div className="relative">
+                    <input
+                      id="email"
+                      type="email"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      placeholder="racer@pixelracing.com"
+                      required
+                      disabled={loading}
+                      className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-xl text-white placeholder-white/40 focus:outline-none focus:ring-2 focus:ring-green-400 focus:border-transparent backdrop-blur-sm transition-all duration-300 disabled:opacity-50"
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <label htmlFor="otp" className="block text-white/90 text-sm font-medium tracking-wide">
+                    6-Digit OTP
+                  </label>
+                  <div className="relative">
+                    <input
+                      id="otp"
+                      type="text"
+                      value={otp}
+                      onChange={(e) => setOtp(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                      placeholder="123456"
+                      required
+                      maxLength={6}
+                      disabled={loading}
+                      className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-xl text-white placeholder-white/40 focus:outline-none focus:ring-2 focus:ring-green-400 focus:border-transparent backdrop-blur-sm transition-all duration-300 disabled:opacity-50 text-center text-2xl tracking-widest font-mono"
+                    />
+                  </div>
+                  <p className="text-white/50 text-xs">Enter the OTP sent to your email</p>
+                </div>
+
                 <div className="space-y-2">
                   <label htmlFor="password" className="block text-white/90 text-sm font-medium tracking-wide">
                     New Password

@@ -76,7 +76,7 @@ export class SocketHandler {
    */
   private setupConnectionHandler(): void {
     this.io.on("connection", (socket) => {
-      console.log(`✅ User connected: ${socket.data.username} (${socket.id})`);
+      console.log(` User connected: ${socket.data.username} (${socket.id})`);
 
       // Restore user's room on reconnection
       this.restoreUserRoom(socket);
@@ -108,7 +108,7 @@ export class SocketHandler {
         // Update room to reflect reconnection
         this.io.to(room.id).emit("room-updated", room);
         console.log(
-          `🔄 Restored room connection for ${socket.data.username}: ${room.name}`
+          ` Restored room connection for ${socket.data.username}: ${room.name}`
         );
       }
     } catch (error) {
@@ -136,7 +136,7 @@ export class SocketHandler {
         // Broadcast room creation to all clients (for lobby updates)
         this.io.emit("room-created", room);
 
-        console.log(`🎮 Room created: ${room.name} by ${socket.data.username}`);
+        console.log(` Room created: ${room.name} by ${socket.data.username}`);
       } catch (error) {
         console.error("Create room error:", error);
         callback(null);
@@ -176,7 +176,7 @@ export class SocketHandler {
           socket.to(roomId).emit("player-joined", newPlayer);
         }
 
-        console.log(`👤 ${socket.data.username} joined room: ${room.name}`);
+        console.log(` ${socket.data.username} joined room: ${room.name}`);
       } catch (error) {
         console.error("Join room error:", error);
         callback(false);
@@ -235,7 +235,7 @@ export class SocketHandler {
             });
           });
 
-          console.log(`🚪 Room closed by host: ${socket.data.username}`);
+          console.log(` Room closed by host: ${socket.data.username}`);
         }
       } catch (error) {
         console.error("Close room error:", error);
@@ -273,7 +273,7 @@ export class SocketHandler {
         const room = this.roomManager.selectCar(socket.data.userId, carId);
         if (room) {
           this.io.to(room.id).emit("room-updated", room);
-          console.log(`🚗 ${socket.data.username} selected car: ${carId}`);
+          console.log(` ${socket.data.username} selected car: ${carId}`);
         }
       } catch (error) {
         console.error("Select car error:", error);
@@ -305,7 +305,7 @@ export class SocketHandler {
             clearInterval(countdownInterval);
             this.roomManager.setRaceStatus(room.id, "racing");
             this.io.to(room.id).emit("race-started");
-            console.log(`🏁 Race started in room: ${room.name}`);
+            console.log(` Race started in room: ${room.name}`);
           }
         }, 1000);
       } catch (error) {
@@ -355,7 +355,7 @@ export class SocketHandler {
 
         // TODO: Store race results in database
         console.log(
-          `🏆 ${socket.data.username} finished with time: ${lapTime}s`
+          ` ${socket.data.username} finished with time: ${lapTime}s`
         );
 
         // For now, just notify the room
@@ -374,7 +374,7 @@ export class SocketHandler {
   ): void {
     socket.on("disconnect", () => {
       console.log(
-        `❌ User disconnected: ${socket.data.username} (${socket.id})`
+        ` User disconnected: ${socket.data.username} (${socket.id})`
       );
       this.leaveCurrentRoom(socket);
     });
@@ -398,7 +398,7 @@ export class SocketHandler {
           this.io.to(roomId).emit("player-left", socket.data.userId);
         }
 
-        console.log(`👋 ${socket.data.username} left room`);
+        console.log(` ${socket.data.username} left room`);
       }
     } catch (error) {
       console.error("Leave room error:", error);

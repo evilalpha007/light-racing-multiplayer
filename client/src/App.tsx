@@ -10,59 +10,62 @@ import { Lobby } from './components/Lobby/Lobby';
 import { WaitingRoom } from './components/Lobby/WaitingRoom';
 import { MultiplayerGame } from './components/Game/MultiplayerGame';
 import { SinglePlayerGame } from './components/Game/SinglePlayerGame';
+import { MobileBlocker } from './components/MobileBlocker';
 
 function App() {
   return (
-    <AuthProvider>
-      <BrowserRouter>
-        <Routes>
-          <Route path="/login" element={<Login />} />
-          <Route path="/register" element={<Register />} />
-          <Route path="/forgot-password" element={<ForgotPassword />} />
-          <Route path="/reset-password" element={<ResetPassword />} />
-          
-          <Route
-            path="/lobby"
-            element={
-              <ProtectedRoute>
-                <Lobby />
-              </ProtectedRoute>
-            }
-          />
-          
-          <Route
-            path="/room/:roomId"
-            element={
-              <ProtectedRoute>
-                <WaitingRoom />
-              </ProtectedRoute>
-            }
-          />
-          
-          <Route
-            path="/game/:roomId"
-            element={
-              <ProtectedRoute>
-                <MultiplayerGame />
-              </ProtectedRoute>
-            }
-          />
-          
-          <Route
-            path="/single-player"
-            element={
-              <ProtectedRoute>
-                <SinglePlayerGame />
-              </ProtectedRoute>
-            }
-          />
-          
-          <Route path="/" element={<Navigate to="/lobby" replace />} />
-          
-          <Route path="*" element={<Navigate to="/lobby" replace />} />
-        </Routes>
-      </BrowserRouter>
-    </AuthProvider>
+    <MobileBlocker>
+      <AuthProvider>
+        <BrowserRouter>
+          <Routes>
+            <Route path="/login" element={<Login />} />
+            <Route path="/register" element={<Register />} />
+            <Route path="/forgot-password" element={<ForgotPassword />} />
+            <Route path="/reset-password" element={<ResetPassword />} />
+            
+            <Route
+              path="/lobby"
+              element={
+                <ProtectedRoute>
+                  <Lobby />
+                </ProtectedRoute>
+              }
+            />
+            
+            <Route
+              path="/room/:roomId"
+              element={
+                <ProtectedRoute>
+                  <WaitingRoom />
+                </ProtectedRoute>
+              }
+            />
+            
+            <Route
+              path="/game/:roomId"
+              element={
+                <ProtectedRoute>
+                  <MultiplayerGame />
+                </ProtectedRoute>
+              }
+            />
+            
+            <Route
+              path="/single-player"
+              element={
+                <ProtectedRoute>
+                  <SinglePlayerGame />
+                </ProtectedRoute>
+              }
+            />
+            
+            <Route path="/" element={<Navigate to="/lobby" replace />} />
+            
+            <Route path="*" element={<Navigate to="/lobby" replace />} />
+          </Routes>
+        </BrowserRouter>
+      </AuthProvider>
+    </MobileBlocker>
   );
 }
 

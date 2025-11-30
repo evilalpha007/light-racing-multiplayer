@@ -77,7 +77,7 @@ export class GameEngine {
       width: 1024,
       height: 768,
       roadWidth: 2000,
-      segmentLength: 200,
+      segmentLength: 333, // Increased from 200 to ~333 for max speed ~200 (was ~120)
       rumbleLength: 3,
       lanes: 3,
       fieldOfView: 100,
@@ -212,7 +212,7 @@ export class GameEngine {
     const playerSegment = this.findSegment(this.position + this.playerZ);
     const playerW = SPRITES.PLAYER_STRAIGHT.w * SPRITES.SCALE;
     const speedPercent = this.speed / this.maxSpeed;
-    const dx = dt * 2 * speedPercent;
+    const dx = dt * 2.2 * speedPercent; // Slightly increased for better control at high speeds
     const startPosition = this.position;
 
     // Update position
@@ -232,10 +232,10 @@ export class GameEngine {
     // Centrifugal force
     this.playerX -= dx * speedPercent * playerSegment.curve * 0.3;
 
-    // Acceleration and braking
-    const accel = this.maxSpeed / 5;
-    const breaking = -this.maxSpeed;
-    const decel = -this.maxSpeed / 5;
+    // Acceleration and braking (adjusted for higher max speed)
+    const accel = this.maxSpeed / 4.5; // Slightly faster acceleration
+    const breaking = -this.maxSpeed * 1.2; // Stronger braking for high speeds
+    const decel = -this.maxSpeed / 4.5; // Balanced deceleration
     const offRoadDecel = -this.maxSpeed / 2;
     const offRoadLimit = this.maxSpeed / 4;
     const reverseAccel = -this.maxSpeed / 10; // Slower reverse acceleration
@@ -293,6 +293,31 @@ export class GameEngine {
             -this.playerZ,
             this.trackLength
           );
+          break;
+        }
+      }
+    }
+
+    // Check for booster pads (on road, center)
+    for (const sprite of playerSegment.sprites) {
+      if (sprite.source === SPRITES.BOOSTER) {
+        const spriteW = sprite.source.w * SPRITES.SCALE;
+        // Check if player is on the booster (center of road)
+        if (
+          Math.abs(this.playerX - sprite.offset) < 0.5 && // Player is near center
+          Util.overlap(
+            this.playerX,
+            playerW,
+            sprite.offset,
+            spriteW
+          )
+        ) {
+          // BOOST! Increase speed by 30%
+          const boostAmount = this.maxSpeed * 0.3;
+          this.speed = Math.min(this.maxSpeed * 1.5, this.speed + boostAmount);
+          
+          // Optional: Mark booster as used (remove it)
+          // playerSegment.sprites = playerSegment.sprites.filter(s => s !== sprite);
           break;
         }
       }

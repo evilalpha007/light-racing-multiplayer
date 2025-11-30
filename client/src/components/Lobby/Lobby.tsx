@@ -12,11 +12,15 @@ import { Canvas, useFrame } from "@react-three/fiber";
 import { OrbitControls, useGLTF } from "@react-three/drei";
 import { LogOut } from "lucide-react";
 
+// Loading Screen
+import { LoadingScreen } from "../LoadingScreen";
+
 export const Lobby: React.FC = () => {
   const [rooms, setRooms] = useState<Room[]>([]);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [roomName, setRoomName] = useState("");
   const [loading, setLoading] = useState(false);
+  const [showLoading, setShowLoading] = useState(true); // Loading screen state
 
   const { user, logout } = useAuth();
   const navigate = useNavigate();
@@ -157,8 +161,16 @@ export const Lobby: React.FC = () => {
   };
 
   return (
-    <div
-      className="lobby-container"
+    <>
+      {showLoading && (
+        <LoadingScreen 
+          onComplete={() => setShowLoading(false)}
+          duration={3500}
+        />
+      )}
+      
+      <div
+        className="lobby-container"
       style={{
         background: `linear-gradient(rgba(26, 31, 46, 0.85), rgba(44, 62, 80, 0.85)), url('/racing-bg.png')`,
         backgroundSize: "cover",
@@ -632,7 +644,8 @@ export const Lobby: React.FC = () => {
           </div>
         </div>
       )}
-    </div>
+      </div>
+    </>
   );
 };
 

@@ -172,6 +172,15 @@ export class RoadBuilder {
         this.addSprite(n + Util.randomInt(0, 50), sprite, offset);
       }
     }
+
+    // Add speed boosters on road (center)
+    // Place boosters at strategic locations - straights and after curves
+    const boosterLocations = [50, 150, 300, 500, 750, 1000, 1200];
+    for (const location of boosterLocations) {
+      if (location < this.segments.length) {
+        this.addSprite(location, SPRITES.BOOSTER, 0); // Center of road
+      }
+    }
   }
 
   private addStartFinishLines(playerZ: number): void {

@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { GameEngine } from "../../engine/GameEngine";
+import { LoadingScreen } from "../LoadingScreen";
 import "./MultiplayerGame.css";
 
 export const SinglePlayerGame: React.FC = () => {
@@ -108,10 +109,10 @@ export const SinglePlayerGame: React.FC = () => {
   return (
     <div className="game-container">
       {loading && (
-        <div className="game-loading">
-          <div className="loading-spinner"></div>
-          <p>Loading game...</p>
-        </div>
+        <LoadingScreen 
+          onComplete={() => setLoading(false)}
+          duration={2500}
+        />
       )}
 
       {error && (
@@ -182,7 +183,7 @@ export const SinglePlayerGame: React.FC = () => {
       <canvas ref={canvasRef} className="game-canvas" />
 
       {!loading && !error && !raceResults && (
-        <div className="game-controls">
+        <div className="game-controls hidden lg:block">
           <p>🎮 Arrow Keys or WASD to control</p>
           <p>↑ Accelerate | ↓ Brake | ← → Steer</p>
           <p style={{ marginTop: "10px", fontSize: "0.9rem", opacity: 0.8 }}>

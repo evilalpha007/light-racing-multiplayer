@@ -143,17 +143,73 @@ export class Renderer {
 
     const clipH = clipY ? Math.max(0, destY + destH - clipY) : 0;
     if (clipH < destH) {
-      ctx.drawImage(
-        sprites,
-        sprite.x,
-        sprite.y,
-        sprite.w,
-        sprite.h - (sprite.h * clipH) / destH,
-        destX,
-        destY,
-        destW,
-        destH - clipH
-      );
+      // Special rendering for BOOSTER sprite (custom colored rectangle)
+      if (sprite === SPRITES.BOOSTER) {
+        // Save context for rounded rectangle
+        ctx.save();
+        
+        // Draw rounded rectangle background
+        const radius = Math.min(destW, destH - clipH) * 0.2;
+        ctx.fillStyle = '#FF6B00'; // Bright orange
+        ctx.beginPath();
+        ctx.moveTo(destX + radius, destY);
+        ctx.lineTo(destX + destW - radius, destY);
+        ctx.quadraticCurveTo(destX + destW, destY, destX + destW, destY + radius);
+        ctx.lineTo(destX + destW, destY + destH - clipH - radius);
+        ctx.quadraticCurveTo(destX + destW, destY + destH - clipH, destX + destW - radius, destY + destH - clipH);
+        ctx.lineTo(destX + radius, destY + destH - clipH);
+        ctx.quadraticCurveTo(destX, destY + destH - clipH, destX, destY + destH - clipH - radius);
+        ctx.lineTo(destX, destY + radius);
+        ctx.quadraticCurveTo(destX, destY, destX + radius, destY);
+        ctx.closePath();
+        ctx.fill();
+        
+        // Add yellow stripes for speed effect
+        ctx.fillStyle = '#FFD700'; // Gold
+        const stripeCount = 4;
+        const stripeWidth = destW / (stripeCount * 2);
+        for (let i = 0; i < stripeCount; i++) {
+          ctx.fillRect(destX + i * stripeWidth * 2 + stripeWidth/2, destY, stripeWidth, destH - clipH);
+        }
+        
+        // Add border
+        ctx.strokeStyle = '#FFFFFF';
+        ctx.lineWidth = Math.max(2, destH * 0.05);
+        ctx.beginPath();
+        ctx.moveTo(destX + radius, destY);
+        ctx.lineTo(destX + destW - radius, destY);
+        ctx.quadraticCurveTo(destX + destW, destY, destX + destW, destY + radius);
+        ctx.lineTo(destX + destW, destY + destH - clipH - radius);
+        ctx.quadraticCurveTo(destX + destW, destY + destH - clipH, destX + destW - radius, destY + destH - clipH);
+        ctx.lineTo(destX + radius, destY + destH - clipH);
+        ctx.quadraticCurveTo(destX, destY + destH - clipH, destX, destY + destH - clipH - radius);
+        ctx.lineTo(destX, destY + radius);
+        ctx.quadraticCurveTo(destX, destY, destX + radius, destY);
+        ctx.closePath();
+        ctx.stroke();
+        
+        // Add "NITRO" text
+        ctx.fillStyle = '#FFFFFF';
+        ctx.font = `bold ${destH * 0.5}px Arial`;
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText('NITRO', destX + destW / 2, destY + (destH - clipH) / 2);
+        
+        ctx.restore();
+      } else {
+        // Regular sprite rendering
+        ctx.drawImage(
+          sprites,
+          sprite.x,
+          sprite.y,
+          sprite.w,
+          sprite.h - (sprite.h * clipH) / destH,
+          destX,
+          destY,
+          destW,
+          destH - clipH
+        );
+      }
     }
   }
 

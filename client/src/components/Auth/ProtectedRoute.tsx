@@ -1,6 +1,7 @@
 import React from 'react';
 import { Navigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
+import { LoadingScreen } from '../LoadingScreen';
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
@@ -11,17 +12,10 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
 
   if (loading) {
     return (
-      <div style={{
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        minHeight: '100vh',
-        background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-        color: 'white',
-        fontSize: '1.5rem'
-      }}>
-        Loading...
-      </div>
+      <LoadingScreen 
+        onComplete={() => {}}
+        duration={2000}
+      />
     );
   }
 

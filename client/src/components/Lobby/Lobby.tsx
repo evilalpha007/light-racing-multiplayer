@@ -27,7 +27,8 @@ export const Lobby: React.FC = () => {
 
   const fetchRooms = async () => {
     try {
-      const response = await fetch("http://localhost:3000/api/rooms");
+      const apiUrl = import.meta.env.VITE_API_URL || "http://localhost:3000/api";
+      const response = await fetch(`${apiUrl}/rooms`);
       const data = await response.json();
       setRooms(data.rooms || []);
     } catch (error) {

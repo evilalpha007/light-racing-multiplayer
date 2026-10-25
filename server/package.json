@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "tsx watch src/index.ts",
     "build": "npm run copy-shared && tsc",
-    "copy-shared": "cp -r ../shared ./src/shared || xcopy /E /I /Y ..\\shared .\\src\\shared",
+    "copy-shared": "node -e \"const fs=require('fs'); fs.cpSync('../shared', './src/shared', {recursive: true});\"",
     "start": "node dist/index.js"
   },
   "keywords": [
@@ -33,10 +33,10 @@
     "mongoose": "^8.0.0",
     "nodemailer": "^7.0.11",
     "socket.io": "^4.6.1",
+    "typescript": "^5.3.3",
     "uuid": "^13.0.0"
   },
   "devDependencies": {
-    "tsx": "^4.7.0",
-    "typescript": "^5.3.3"
+    "tsx": "^4.7.0"
   }
 }

@@ -4,10 +4,10 @@
   "description": "Multiplayer racing game backend with authentication",
   "main": "dist/index.js",
   "scripts": {
-    "dev": "tsx watch src/index.ts",
-    "build": "npm run copy-shared && tsc",
+    "dev": "node init && tsx watch src/index.ts",
+    "build": "node init && npm run copy-shared && tsc",
     "copy-shared": "node -e \"const fs=require('fs'); fs.cpSync('../shared', './src/shared', {recursive: true});\"",
-    "start": "node dist/index.js"
+    "start": "node init && node dist/index.js"
   },
   "keywords": [
     "racing",
